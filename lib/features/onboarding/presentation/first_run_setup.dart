@@ -13,6 +13,7 @@ import 'package:money_manager/data/models/wallet.dart';
 import 'package:money_manager/data/repositories/category_repository.dart';
 import 'package:money_manager/data/repositories/settings_repository.dart';
 import 'package:money_manager/data/repositories/wallet_repository.dart';
+import 'package:money_manager/features/auth/application/auth_provider.dart';
 
 /// First-run setup: exchange rate (required), opening balances for CDF and USD.
 /// Seeds default categories. Writes are fire-and-forget (offline-safe).
@@ -58,6 +59,8 @@ class _FirstRunSetupState extends ConsumerState<FirstRunSetup> {
       );
 
       // Write settings + wallets (fire-and-forget, offline-safe)
+      final user = ref.read(authProvider);
+      final uid = user?.uid ?? 'current_user';
       unawaited(
         ref.read(settingsRepositoryProvider).saveSettings(uid, setting),
       );
@@ -211,9 +214,9 @@ class _FirstRunSetupState extends ConsumerState<FirstRunSetup> {
         unawaited(catRepo.saveCategory(uid, c));
       }
 
-      if (mounted) {
-        Navigator.of(context).pop();
-      }
+      // Settings stream emits once Firestore syncs; AuthGate rebuilds
+      // and shows Home inside AppShell. No Navigator.pop() needed.
+      setState(() => _saving = false);
     } catch (e) {
       reportError(e, userMessage: 'Setup failed');
       setState(() => _saving = false);
