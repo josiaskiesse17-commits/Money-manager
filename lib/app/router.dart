@@ -3,7 +3,9 @@ import 'package:money_manager/app/auth_gate.dart';
 import 'package:money_manager/app/routes.dart';
 import 'package:money_manager/features/auth/presentation/reset_password_screen.dart';
 import 'package:money_manager/features/auth/presentation/sign_up_screen.dart';
+import 'package:money_manager/features/budgets/presentation/budgets_screen.dart';
 import 'package:money_manager/features/convert/presentation/convert_screen.dart';
+import 'package:money_manager/features/charts/presentation/charts_screen.dart';
 import 'package:money_manager/features/home/presentation/home_screen.dart';
 import 'package:money_manager/features/transactions/presentation/transaction_list_screen.dart';
 
@@ -23,5 +25,7 @@ final router = GoRouter(
     ),
     GoRoute(path: AppRoutes.convert, builder: (_, _) => const ConvertScreen()),
     GoRoute(path: AppRoutes.home, builder: (_, _) => const HomeScreen()),
+    GoRoute(path: AppRoutes.budgets, builder: (_, _) => const BudgetsScreen()),
+    GoRoute(path: AppRoutes.charts, builder: (_, _) => const ChartsScreen()),
   ],
 );
