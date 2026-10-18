@@ -11,9 +11,9 @@ import 'package:money_manager/data/models/category.dart';
 import 'package:money_manager/data/models/setting.dart';
 import 'package:money_manager/data/models/wallet.dart';
 import 'package:money_manager/data/repositories/category_repository.dart';
-import 'package:money_manager/data/repositories/settings_repository.dart';
 import 'package:money_manager/data/repositories/wallet_repository.dart';
 import 'package:money_manager/features/auth/application/auth_provider.dart';
+import 'package:money_manager/features/settings/application/settings_provider.dart';
 
 /// First-run setup: exchange rate (required), opening balances for CDF and USD.
 /// Seeds default categories. Writes are fire-and-forget (offline-safe).
@@ -58,12 +58,11 @@ class _FirstRunSetupState extends ConsumerState<FirstRunSetup> {
         onboarded: true,
       );
 
-      // Write settings + wallets (fire-and-forget, offline-safe)
+      // Write settings via provider notifier so AuthGate rebuilds
+      // and transitions to Home once onboarded is true.
       final user = ref.read(authProvider);
       final uid = user?.uid ?? 'current_user';
-      unawaited(
-        ref.read(settingsRepositoryProvider).saveSettings(uid, setting),
-      );
+      await ref.read(settingsProvider(uid).notifier).save(setting);
       unawaited(
         ref
             .read(walletRepositoryProvider)

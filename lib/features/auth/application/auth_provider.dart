@@ -11,11 +11,13 @@ class AuthStateNotifier extends StateNotifier<User?> {
 
   String? _signInError;
   String? _signUpError;
+  String? _resetError;
   bool _resetSent = false;
   bool _busy = false;
 
   String? get signInError => _signInError;
   String? get signUpError => _signUpError;
+  String? get resetError => _resetError;
   bool get resetSent => _resetSent;
   bool get busy => _busy;
 
@@ -44,12 +46,13 @@ class AuthStateNotifier extends StateNotifier<User?> {
   }
 
   Future<void> resetPassword(String email) async {
+    _resetError = null;
     _busy = true;
     try {
       await _repo.resetPassword(email);
       _resetSent = true;
     } catch (e) {
-      _signUpError = 'Password reset failed.';
+      _resetError = 'Password reset failed.';
     } finally {
       _busy = false;
     }

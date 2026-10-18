@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:money_manager/app/app_shell.dart';
 import 'package:money_manager/app/routes.dart';
+import 'package:money_manager/app/widgets/error_banner.dart';
 import 'package:money_manager/features/auth/application/auth_provider.dart';
 import 'package:money_manager/features/auth/presentation/sign_in_screen.dart';
 import 'package:money_manager/features/home/presentation/home_screen.dart';
@@ -33,8 +34,14 @@ class AuthGate extends ConsumerWidget {
                 },
                 loading: () =>
                     const Scaffold(body: Center(child: Text('Loading...'))),
-                error: (_, st) => Scaffold(
-                  body: Center(child: Text('Error: ${st.toString()}')),
+                error: (error, stack) => Scaffold(
+                  body: Center(
+                    child: ErrorBanner(
+                      message: 'Failed to load settings.',
+                      fix: 'Check your internet connection and try again.',
+                      onRetry: () => ref.refresh(settingsProvider(user.uid)),
+                    ),
+                  ),
                 ),
               );
             },

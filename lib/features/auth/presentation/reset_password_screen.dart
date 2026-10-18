@@ -3,21 +3,49 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:money_manager/app/error_reporter.dart';
 import 'package:money_manager/app/routes.dart';
-import 'package:money_manager/app/widgets/auth_layout.dart';
 import 'package:money_manager/app/widgets/app_text_field.dart';
+import 'package:money_manager/app/widgets/auth_layout.dart';
+import 'package:money_manager/app/widgets/error_banner.dart';
 import 'package:money_manager/app/widgets/primary_button.dart';
 import 'package:money_manager/app/widgets/secondary_button.dart';
 import 'package:money_manager/features/auth/application/auth_provider.dart';
 
-class ResetPasswordScreen extends ConsumerWidget {
+class ResetPasswordScreen extends ConsumerStatefulWidget {
   const ResetPasswordScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final emailCtrl = TextEditingController();
-    final formKey = GlobalKey<FormState>();
-    final sent = ref.watch(authProvider.notifier).resetSent;
-    final busy = ref.watch(authProvider.notifier).busy;
+  ConsumerState<ResetPasswordScreen> createState() =>
+      _ResetPasswordScreenState();
+}
+
+class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
+  final _emailCtrl = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+
+  @override
+  void dispose() {
+    _emailCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    try {
+      await ref
+          .read(authProvider.notifier)
+          .resetPassword(_emailCtrl.text.trim());
+    } catch (e) {
+      reportError(e, userMessage: 'Password reset failed.');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = ref.watch(authProvider.notifier);
+    final sent = auth.resetSent;
+    final busy = auth.busy;
+    final errorMessage = auth.resetError;
 
     return AuthLayout(
       title: 'Reset password',
@@ -26,13 +54,17 @@ class ResetPasswordScreen extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           if (!sent) ...[
+            if (errorMessage != null) ...[
+              ErrorBanner(message: errorMessage),
+              const SizedBox(height: 20),
+            ],
             const Text(
               'Enter your email to receive a password reset link.',
               style: TextStyle(fontSize: 16),
             ),
             const SizedBox(height: 16),
             AppTextField(
-              controller: emailCtrl,
+              controller: _emailCtrl,
               label: 'Email',
               autofillHint: AutofillHints.email,
               keyboardType: TextInputType.emailAddress,
@@ -42,24 +74,13 @@ class ResetPasswordScreen extends ConsumerWidget {
             PrimaryButton(
               text: 'Send reset link',
               busy: busy,
-              onPressed: busy
-                  ? null
-                  : () async {
-                      if (!formKey.currentState!.validate()) return;
-                      try {
-                        await ref
-                            .read(authProvider.notifier)
-                            .resetPassword(emailCtrl.text);
-                      } catch (e) {
-                        reportError(e, userMessage: 'Password reset failed.');
-                      }
-                    },
+              onPressed: busy ? null : _submit,
             ),
             const SizedBox(height: 20),
             Center(
               child: SecondaryButton(
                 text: 'Back to sign in',
-                onPressed: () => context.go(AppRoutes.signIn),
+                onPressed: busy ? null : () => context.go(AppRoutes.signIn),
               ),
             ),
           ] else ...[
