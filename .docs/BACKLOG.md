@@ -24,8 +24,8 @@ Work top to bottom. Tick a task only when `dart format .`, `flutter analyze` and
 - [x] Transactions list with month navigation, search and filters (+ filter tests)
 
 ## M4 — Home and convert
-- [ ] Home: balances, display toggle, month summary (+ summary tests), recent list, FAB
-- [ ] Convert screen with preview and history/delete
+- [x] Home: balances, display toggle, month summary (+ summary tests), recent list, FAB
+- [x] Convert screen with preview and history/delete
 
 ## M5 — Budgets and charts
 - [ ] Budgets screen and dialog, budget math (+ boundary tests), alerts on Home

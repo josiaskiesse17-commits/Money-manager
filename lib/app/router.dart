@@ -3,6 +3,8 @@ import 'package:money_manager/app/auth_gate.dart';
 import 'package:money_manager/app/routes.dart';
 import 'package:money_manager/features/auth/presentation/reset_password_screen.dart';
 import 'package:money_manager/features/auth/presentation/sign_up_screen.dart';
+import 'package:money_manager/features/convert/presentation/convert_screen.dart';
+import 'package:money_manager/features/home/presentation/home_screen.dart';
 import 'package:money_manager/features/transactions/presentation/transaction_list_screen.dart';
 
 /// App routes — go_router configuration using named constants from [AppRoutes].
@@ -19,5 +21,7 @@ final router = GoRouter(
       path: AppRoutes.transactions,
       builder: (_, _) => const TransactionsScreen(),
     ),
+    GoRoute(path: AppRoutes.convert, builder: (_, _) => const ConvertScreen()),
+    GoRoute(path: AppRoutes.home, builder: (_, _) => const HomeScreen()),
   ],
 );

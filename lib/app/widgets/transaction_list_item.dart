@@ -51,16 +51,15 @@ class TransactionListItem extends StatelessWidget {
               (category != null
                       ? Theme.of(context).extension<MoneyColors>()?.expense
                       : Theme.of(context).colorScheme.error)
-                  ?.withValues(alpha: 0.15)
-                  ??
-                  Theme.of(context).colorScheme.error.withValues(alpha: 0.15),
+                  ?.withValues(alpha: 0.15) ??
+              Theme.of(context).colorScheme.error.withValues(alpha: 0.15),
           child: Icon(
             _iconFor(category),
             size: 20,
-            color: (category != null
+            color:
+                (category != null
                     ? Theme.of(context).extension<MoneyColors>()?.expense
-                    : Theme.of(context).colorScheme.error)
-                ??
+                    : Theme.of(context).colorScheme.error) ??
                 Theme.of(context).colorScheme.error,
           ),
         ),

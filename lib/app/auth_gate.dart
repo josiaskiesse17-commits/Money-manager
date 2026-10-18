@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:money_manager/app/app_shell.dart';
+import 'package:money_manager/app/routes.dart';
 import 'package:money_manager/features/auth/application/auth_provider.dart';
 import 'package:money_manager/features/auth/presentation/sign_in_screen.dart';
+import 'package:money_manager/features/home/presentation/home_screen.dart';
 import 'package:money_manager/features/settings/application/settings_provider.dart';
 import 'package:money_manager/features/onboarding/presentation/first_run_setup.dart';
 
@@ -23,7 +26,10 @@ class AuthGate extends ConsumerWidget {
                   if (setting == null || !setting.onboarded) {
                     return const FirstRunSetup();
                   }
-                  return const HomePlaceholder();
+                  return AppShell(
+                    currentRoute: AppRoutes.home,
+                    child: const HomeScreen(),
+                  );
                 },
                 loading: () =>
                     const Scaffold(body: Center(child: Text('Loading...'))),
@@ -33,16 +39,5 @@ class AuthGate extends ConsumerWidget {
               );
             },
           );
-  }
-}
-
-class HomePlaceholder extends StatelessWidget {
-  const HomePlaceholder({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: Text('Home (placeholder) - M4 builds the real Home')),
-    );
   }
 }
