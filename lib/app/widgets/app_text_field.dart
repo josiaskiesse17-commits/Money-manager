@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-/// Outlined text field: label above, helper/error text, password show/hide,
-/// autofill hints. Radius 12.
+/// Outlined text field with theme-aware colors, labels, helper/error text,
+/// password visibility, and autofill support.
 class AppTextField extends StatefulWidget {
   final TextEditingController controller;
   final String label;
@@ -61,48 +61,74 @@ class _AppTextFieldState extends State<AppTextField> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
     final showSuffix = widget.obscureText;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        TextFormField(
-          controller: widget.controller,
-          enabled: widget.enabled,
-          readOnly: widget.readOnly,
-          obscureText: showSuffix ? _obscure : false,
-          keyboardType: widget.keyboardType,
-          autofillHints: widget.autofillHint != null
-              ? [widget.autofillHint!]
-              : null,
-          maxLength: widget.maxLength,
-          maxLines: widget.maxLines ?? 1,
-          validator: widget.validator,
-          onChanged: widget.onChanged,
-          onTap: widget.onTap,
-          textInputAction: widget.textInputAction,
-          onEditingComplete: widget.onEditingComplete,
-          decoration: InputDecoration(
-            labelText: widget.label,
-            hintText: widget.hint,
-            helperText: widget.helperText,
-            errorText: widget.errorText,
-            prefixIcon: widget.prefixIcon != null
-                ? Icon(widget.prefixIcon)
-                : null,
-            suffixIcon: showSuffix
-                ? IconButton(
-                    icon: Icon(
-                      _obscure ? Icons.visibility_off : Icons.visibility,
-                    ),
-                    onPressed: () => setState(() => _obscure = !_obscure),
-                    constraints: const BoxConstraints(),
-                    padding: EdgeInsets.zero,
-                  )
-                : widget.suffixWidget,
-          ),
+    return TextFormField(
+      controller: widget.controller,
+      enabled: widget.enabled,
+      readOnly: widget.readOnly,
+      obscureText: showSuffix ? _obscure : false,
+      keyboardType: widget.keyboardType,
+      autofillHints: widget.autofillHint != null
+          ? [widget.autofillHint!]
+          : null,
+      maxLength: widget.maxLength,
+      maxLines: widget.maxLines ?? 1,
+      validator: widget.validator,
+      onChanged: widget.onChanged,
+      onTap: widget.onTap,
+      textInputAction: widget.textInputAction,
+      onEditingComplete: widget.onEditingComplete,
+      style: theme.textTheme.bodyLarge?.copyWith(color: colors.onSurface),
+      cursorColor: colors.primary,
+      decoration: InputDecoration(
+        labelText: widget.label,
+        hintText: widget.hint,
+        helperText: widget.helperText,
+        errorText: widget.errorText,
+        filled: true,
+        fillColor: colors.surface,
+        labelStyle: TextStyle(color: colors.onSurfaceVariant),
+        floatingLabelStyle: TextStyle(color: colors.primary),
+        hintStyle: TextStyle(color: colors.onSurfaceVariant),
+        helperStyle: TextStyle(color: colors.onSurfaceVariant),
+        errorStyle: TextStyle(color: colors.error),
+        prefixIcon: widget.prefixIcon != null
+            ? Icon(widget.prefixIcon, color: colors.onSurfaceVariant)
+            : null,
+        suffixIcon: showSuffix
+            ? IconButton(
+                tooltip: _obscure ? 'Show password' : 'Hide password',
+                icon: Icon(
+                  _obscure ? Icons.visibility_off : Icons.visibility,
+                  color: colors.onSurfaceVariant,
+                ),
+                onPressed: () => setState(() => _obscure = !_obscure),
+              )
+            : widget.suffixWidget,
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: colors.outline),
         ),
-      ],
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: colors.primary, width: 2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: colors.error),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: colors.error, width: 2),
+        ),
+        disabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: colors.outlineVariant),
+        ),
+      ),
     );
   }
 }

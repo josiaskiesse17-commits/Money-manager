@@ -3,94 +3,131 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:money_manager/app/error_reporter.dart';
 import 'package:money_manager/app/routes.dart';
-import 'package:money_manager/app/widgets/auth_layout.dart';
 import 'package:money_manager/app/widgets/app_text_field.dart';
+import 'package:money_manager/app/widgets/auth_layout.dart';
 import 'package:money_manager/app/widgets/error_banner.dart';
 import 'package:money_manager/app/widgets/primary_button.dart';
 import 'package:money_manager/app/widgets/secondary_button.dart';
 import 'package:money_manager/features/auth/application/auth_provider.dart';
 
-class SignInScreen extends ConsumerWidget {
+class SignInScreen extends ConsumerStatefulWidget {
   const SignInScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final emailCtrl = TextEditingController();
-    final passwordCtrl = TextEditingController();
-    final formKey = GlobalKey<FormState>();
-    final errorMessage = ref.watch(authProvider.notifier).signInError;
-    final busy = ref.watch(authProvider.notifier).busy;
+  ConsumerState<SignInScreen> createState() => _SignInScreenState();
+}
+
+class _SignInScreenState extends ConsumerState<SignInScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _emailCtrl = TextEditingController();
+  final _passwordCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _emailCtrl.dispose();
+    _passwordCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    FocusScope.of(context).unfocus();
+
+    try {
+      await ref
+          .read(authProvider.notifier)
+          .signIn(_emailCtrl.text.trim(), _passwordCtrl.text);
+    } catch (e) {
+      reportError(e, userMessage: 'Wrong email or password.');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = ref.watch(authProvider.notifier);
+    final errorMessage = auth.signInError;
+    final busy = auth.busy;
+    final colors = Theme.of(context).colorScheme;
 
     return AuthLayout(
-      title: 'Sign in',
+      title: 'Welcome back',
       subtitle: 'Track CDF and USD in one place.',
-      child: Form(
-        key: formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (errorMessage != null) ...[
-              ErrorBanner(message: errorMessage),
-              const SizedBox(height: 16),
-            ],
-            AppTextField(
-              controller: emailCtrl,
-              label: 'Email',
-              autofillHint: AutofillHints.email,
-              keyboardType: TextInputType.emailAddress,
-              validator: (v) => v == null || v.isEmpty ? 'Enter email' : null,
-            ),
-            const SizedBox(height: 16),
-            AppTextField(
-              controller: passwordCtrl,
-              label: 'Password',
-              obscureText: true,
-              autofillHint: AutofillHints.password,
-              validator: (v) =>
-                  v == null || v.isEmpty ? 'Enter password' : null,
-            ),
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerRight,
-              child: SecondaryButton(
-                text: 'Forgot password?',
-                onPressed: () => context.go(AppRoutes.resetPassword),
+      child: AutofillGroup(
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (errorMessage != null) ...[
+                ErrorBanner(message: errorMessage),
+                const SizedBox(height: 20),
+              ],
+              AppTextField(
+                controller: _emailCtrl,
+                label: 'Email address',
+                autofillHint: AutofillHints.email,
+                keyboardType: TextInputType.emailAddress,
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Enter your email address';
+                  }
+                  return null;
+                },
               ),
-            ),
-            const SizedBox(height: 24),
-            PrimaryButton(
-              text: 'Sign in',
-              busy: busy,
-              onPressed: busy
-                  ? null
-                  : () async {
-                      if (!formKey.currentState!.validate()) return;
-                      try {
-                        await ref
-                            .read(authProvider.notifier)
-                            .signIn(emailCtrl.text, passwordCtrl.text);
-                      } catch (e) {
-                        reportError(e, userMessage: 'Wrong email or password.');
-                      }
-                    },
-            ),
-            const SizedBox(height: 20),
-            const Divider(),
-            const SizedBox(height: 8),
-            Center(
-              child: Text(
-                'or',
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+              const SizedBox(height: 18),
+              AppTextField(
+                controller: _passwordCtrl,
+                label: 'Password',
+                obscureText: true,
+                autofillHint: AutofillHints.password,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Enter your password';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerRight,
+                child: SecondaryButton(
+                  text: 'Forgot password?',
+                  onPressed: busy
+                      ? null
+                      : () => context.go(AppRoutes.resetPassword),
                 ),
               ),
-            ),
-            const SizedBox(height: 8),
-            SecondaryButton(
-              text: 'Create an account',
-              onPressed: () => context.go(AppRoutes.signUp),
-            ),
-          ],
+              const SizedBox(height: 24),
+              PrimaryButton(
+                text: 'Sign in',
+                busy: busy,
+                onPressed: busy ? null : _submit,
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(child: Divider(color: colors.outlineVariant)),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Text(
+                      'OR',
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: colors.onSurfaceVariant,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  ),
+                  Expanded(child: Divider(color: colors.outlineVariant)),
+                ],
+              ),
+              const SizedBox(height: 20),
+              SecondaryButton(
+                text: 'Create an account',
+                onPressed: busy ? null : () => context.go(AppRoutes.signUp),
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -19,9 +19,9 @@ Work top to bottom. Tick a task only when `dart format .`, `flutter analyze` and
 - [x] `AuthGate` and first-run setup (rate, opening balances, seed default categories)
 
 ## M3 — Transactions
-- [ ] Add/edit sheet with amount keypad (+ keypad tests) and category chips
-- [ ] Controller: add, edit (keeps `rateAtEntry`), delete, undo; balances via batch increments
-- [ ] Transactions list with month navigation, search and filters (+ filter tests)
+- [x] Add/edit sheet with amount keypad (+ keypad tests) and category chips
+- [x] Controller: add, edit (keeps `rateAtEntry`), delete, undo; balances via batch increments
+- [x] Transactions list with month navigation, search and filters (+ filter tests)
 
 ## M4 — Home and convert
 - [ ] Home: balances, display toggle, month summary (+ summary tests), recent list, FAB
