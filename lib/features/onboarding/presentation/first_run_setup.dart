@@ -4,6 +4,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:money_manager/app/error_reporter.dart';
+import 'package:money_manager/app/widgets/app_text_field.dart';
+import 'package:money_manager/app/widgets/auth_layout.dart';
+import 'package:money_manager/app/widgets/primary_button.dart';
 import 'package:money_manager/data/models/category.dart';
 import 'package:money_manager/data/models/setting.dart';
 import 'package:money_manager/data/models/wallet.dart';
@@ -217,55 +220,57 @@ class _FirstRunSetupState extends ConsumerState<FirstRunSetup> {
     }
   }
 
+  String? _validateRate(String? v) {
+    if (v == null || v.isEmpty) return 'Rate required';
+    try {
+      final cleaned = v.replaceAll(',', '').replaceAll('.', '');
+      if (int.tryParse(cleaned) == null) return 'Enter a valid rate';
+      return null;
+    } catch (_) {
+      return 'Enter a valid rate';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final uid = 'current_user'; // TODO: replace with actual uid from auth
-    return Scaffold(
-      appBar: AppBar(title: const Text('First-run setup')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            children: [
-              const Text('Exchange rate (CDF per 1 USD, e.g. 2800.50):'),
-              TextFormField(
-                controller: _rateCtrl,
-                decoration: const InputDecoration(labelText: 'Rate'),
-                validator: (v) =>
-                    v == null || v.isEmpty ? 'Rate required' : null,
-              ),
-              const SizedBox(height: 16),
-              const Text('Opening balance CDF (whole francs):'),
-              TextFormField(
-                controller: _cdfCtrl,
-                decoration: const InputDecoration(labelText: 'CDF'),
-                keyboardType: TextInputType.number,
-              ),
-              const SizedBox(height: 16),
-              const Text('Opening balance USD (e.g. 100.00):'),
-              TextFormField(
-                controller: _usdCtrl,
-                decoration: const InputDecoration(labelText: 'USD'),
-                keyboardType: TextInputType.number,
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  onPressed: _saving ? null : () => _save(uid),
-                  child: _saving
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Save'),
-                ),
-              ),
-            ],
-          ),
+
+    return AuthLayout(
+      title: 'Set up your wallets',
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            AppTextField(
+              controller: _rateCtrl,
+              label: "Today's rate (1 USD = ? CDF)",
+              helperText: 'e.g. 2800.50',
+              validator: _validateRate,
+            ),
+            const SizedBox(height: 16),
+            AppTextField(
+              controller: _cdfCtrl,
+              label: 'Money you have in CDF',
+              helperText: 'Whole francs',
+              keyboardType: TextInputType.number,
+              validator: (v) => v == null || v.isEmpty ? 'Enter amount' : null,
+            ),
+            const SizedBox(height: 16),
+            AppTextField(
+              controller: _usdCtrl,
+              label: 'Money you have in USD',
+              helperText: 'e.g. 100.00',
+              keyboardType: TextInputType.number,
+              validator: (v) => v == null || v.isEmpty ? 'Enter amount' : null,
+            ),
+            const SizedBox(height: 24),
+            PrimaryButton(
+              text: 'Start tracking',
+              busy: _saving,
+              onPressed: _saving ? null : () => _save(uid),
+            ),
+          ],
         ),
       ),
     );

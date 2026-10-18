@@ -42,10 +42,12 @@ Balance maintenance: wallet `balance` changes with `FieldValue.increment` inside
 Queries: only a date range is queried in Firestore (no composite indexes). Category, wallet and note filters run in memory.
 
 ## Screens
+All screens follow `.docs/design.md` (responsive layout, tokens, shared widgets, loading/empty/error states).
+
 1. **Auth**: email/password sign in, sign up, password reset. `AuthRepository` keeps `signInWithGoogle()` (Firebase `signInWithProvider(GoogleAuthProvider())`) but the button is commented out.
 2. **AuthGate** (above everything): loading -> sign-in -> first-run setup -> Home.
 3. **First-run setup**: rate (required, no default), opening balance for CDF (whole francs) and USD. Seeds default categories. Writes are fire-and-forget (offline-safe).
-4. **Home**: month bar, display toggle CDF / USD / Both (saved in settings), wallet balances (+ total when CDF or USD selected), month income/expense/net, budget alerts, 5 recent transactions, FAB "+", shortcuts to Budgets, Charts, Convert, Report, Settings.
+4. **Home**: built inside an `AppShell` (bottom `NavigationBar` on phones under 840 px wide, `NavigationRail` at 840 px and above). Destinations: Home, Transactions, Budgets, Charts, Settings. Month bar, display toggle CDF / USD / Both (saved in settings), wallet balances (+ total when CDF or USD selected), month income/expense/net, budget alerts, 5 recent transactions, FAB "+", shortcuts to Budgets, Charts, Convert, Report, Settings.
 5. **Add/Edit transaction** (modal bottom sheet): expense/income, wallet (CDF/USD), amount keypad (CDF no decimal key, USD max 2 decimals, max 12 digits), category chips (only matching type, archived hidden unless selected), date (default today), note (max 200). Edit shows delete.
 6. **Transactions list**: month navigation, search note, filters (category, wallet, date range which replaces the month), swipe to delete with Undo (Undo rewrites the same doc id), tap to edit.
 7. **Convert**: direction USD->CDF or CDF->USD, amount, rate prefilled from settings (editable for this conversion only), live preview, history with delete (reverses balances).

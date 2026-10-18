@@ -2,6 +2,7 @@
 
 @AGENTS.md
 @.docs/plan.md
+@.docs/design.md
 
 ## Claude-specific notes
 - Start each session by reading `.docs/BACKLOG.md` and continuing from the first unchecked task.

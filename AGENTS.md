@@ -49,6 +49,13 @@ Firestore is accessed only through `data/` repositories, never from widgets.
 - Test files must always contain a `main()` (an empty placeholder file breaks `flutter test`).
 - Lint: prefer `(_, _)` over `(_, __)` for unused parameters.
 
+## UI rules
+- Every screen must follow `.docs/design.md`.
+- Screens must use the shared widgets and theme tokens in `lib/app/theme.dart` and `lib/app/widgets/`; no hard-coded colors or sizes in screens.
+- Every screen must be responsive: phone (under 600) full width with 16 padding, web/tablet (600+) centered with max width, wide web (900+) two-column Home.
+- Use named route constants from `lib/app/routes.dart` everywhere (`context.go`/`context.push`); a mismatch between a pushed path and a registered path is a bug.
+- A UI task is only done when the checklist at the end of `design.md` passes: 360 px phone and 1280 px web, light and dark; nothing stretches edge to edge; loading/empty/error states exist; amount text uses tabular figures.
+
 ## Security
 - Never commit secrets. Do not paste `google-services.json` contents anywhere. Check `.gitignore` decisions with the user.
 - Firestore rules in `firestore.rules` must restrict all data to the signed-in owner (see `plan.md`).

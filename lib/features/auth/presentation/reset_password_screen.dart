@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:money_manager/app/error_reporter.dart';
+import 'package:money_manager/app/routes.dart';
+import 'package:money_manager/app/widgets/auth_layout.dart';
+import 'package:money_manager/app/widgets/app_text_field.dart';
+import 'package:money_manager/app/widgets/primary_button.dart';
+import 'package:money_manager/app/widgets/secondary_button.dart';
 import 'package:money_manager/features/auth/application/auth_provider.dart';
 
 class ResetPasswordScreen extends ConsumerWidget {
@@ -10,59 +16,65 @@ class ResetPasswordScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final emailCtrl = TextEditingController();
     final formKey = GlobalKey<FormState>();
+    final sent = ref.watch(authProvider.notifier).resetSent;
+    final busy = ref.watch(authProvider.notifier).busy;
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Reset password')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: formKey,
-          child: ListView(
-            children: [
-              const Text('Enter your email to receive a password reset link.'),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: emailCtrl,
-                decoration: const InputDecoration(labelText: 'Email'),
-                validator: (v) => v == null || v.isEmpty ? 'Enter email' : null,
+    return AuthLayout(
+      title: 'Reset password',
+      subtitle: 'Track CDF and USD in one place.',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (!sent) ...[
+            const Text(
+              'Enter your email to receive a password reset link.',
+              style: TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 16),
+            AppTextField(
+              controller: emailCtrl,
+              label: 'Email',
+              autofillHint: AutofillHints.email,
+              keyboardType: TextInputType.emailAddress,
+              validator: (v) => v == null || v.isEmpty ? 'Enter email' : null,
+            ),
+            const SizedBox(height: 24),
+            PrimaryButton(
+              text: 'Send reset link',
+              busy: busy,
+              onPressed: busy
+                  ? null
+                  : () async {
+                      if (!formKey.currentState!.validate()) return;
+                      try {
+                        await ref
+                            .read(authProvider.notifier)
+                            .resetPassword(emailCtrl.text);
+                      } catch (e) {
+                        reportError(e, userMessage: 'Password reset failed.');
+                      }
+                    },
+            ),
+            const SizedBox(height: 20),
+            Center(
+              child: SecondaryButton(
+                text: 'Back to sign in',
+                onPressed: () => context.go(AppRoutes.signIn),
               ),
-              const SizedBox(height: 24),
-              Consumer(
-                builder: (_, ref, _) {
-                  return SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: ElevatedButton(
-                      onPressed: () async {
-                        if (!formKey.currentState!.validate()) return;
-                        try {
-                          await ref
-                              .read(authProvider.notifier)
-                              .resetPassword(emailCtrl.text);
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Reset link sent')),
-                            );
-                          }
-                        } catch (e) {
-                          reportError(e, userMessage: 'Password reset failed');
-                        }
-                      },
-                      child: const Text('Send reset link'),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 16),
-              TextButton(
-                onPressed: () {
-                  // Navigate back to sign in (handled by parent/router)
-                },
-                child: const Text('Back to sign in'),
-              ),
-            ],
-          ),
-        ),
+            ),
+          ] else ...[
+            const Text(
+              'Check your inbox. If the email has an account, a link is on its way.',
+              style: TextStyle(fontSize: 16),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            SecondaryButton(
+              text: 'Back to sign in',
+              onPressed: () => context.go(AppRoutes.signIn),
+            ),
+          ],
+        ],
       ),
     );
   }
