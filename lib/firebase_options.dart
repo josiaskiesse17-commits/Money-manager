@@ -60,7 +60,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyBGp6NdhAuQ1nidYuHcuMT4s61qoshl7tU',
-    appId: '1:358379788738:android:38deab18f38542d85c1e5b',
+    appId: '1:358379788738:android:ecd319456cfdbd825c1e5b',
     messagingSenderId: '358379788738',
     projectId: 'money-manager-bb0f1',
     storageBucket: 'money-manager-bb0f1.firebasestorage.app',
