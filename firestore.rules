@@ -1,0 +1,53 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isOwner(uid) { return request.auth != null && request.auth.uid == uid; }
+    function validCurrency(c) { return c in ['CDF', 'USD']; }
+    function positiveInt(v) { return v is int && v > 0; }
+
+    match /users/{uid}/settings/{docId} {
+      allow read: if isOwner(uid);
+      allow create, update: if isOwner(uid) && positiveInt(request.resource.data.usdToCdfRate);
+    }
+    match /users/{uid}/wallets/{currency} {
+      allow read: if isOwner(uid);
+      allow create, update: if isOwner(uid) && validCurrency(currency) && request.resource.data.balance is int;
+    }
+    match /users/{uid}/categories/{id} {
+      allow read: if isOwner(uid);
+      allow create, update: if isOwner(uid)
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 40
+        && request.resource.data.type in ['income', 'expense']
+        && request.resource.data.color is int;
+    }
+    match /users/{uid}/transactions/{id} {
+      allow read, delete: if isOwner(uid);
+      allow create, update: if isOwner(uid)
+        && positiveInt(request.resource.data.amount)
+        && validCurrency(request.resource.data.currency)
+        && request.resource.data.type in ['income', 'expense']
+        && request.resource.data.categoryId is string
+        && positiveInt(request.resource.data.rateAtEntry)
+        && request.resource.data.date is timestamp
+        && request.resource.data.note is string && request.resource.data.note.size() <= 500;
+    }
+    match /users/{uid}/conversions/{id} {
+      allow read, delete: if isOwner(uid);
+      allow create: if isOwner(uid)
+        && positiveInt(request.resource.data.fromAmount)
+        && request.resource.data.toAmount is int && request.resource.data.toAmount >= 0
+        && validCurrency(request.resource.data.fromCurrency)
+        && validCurrency(request.resource.data.toCurrency)
+        && request.resource.data.fromCurrency != request.resource.data.toCurrency
+        && positiveInt(request.resource.data.rate);
+    }
+    match /users/{uid}/budgets/{id} {
+      allow read, delete: if isOwner(uid);
+      allow create, update: if isOwner(uid)
+        && positiveInt(request.resource.data.monthlyLimit)
+        && validCurrency(request.resource.data.currency)
+        && request.resource.data.categoryId is string;
+    }
+  }
+}

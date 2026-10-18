@@ -1,0 +1,45 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:money_manager/app/error_reporter.dart';
+import 'package:money_manager/data/firebase_providers.dart';
+import 'package:money_manager/data/models/wallet.dart';
+
+class WalletRepository {
+  WalletRepository(this._firestore);
+  final FirebaseFirestore _firestore;
+
+  DocumentReference walletDoc(String uid, String currency) => _firestore
+      .collection('users')
+      .doc(uid)
+      .collection('wallets')
+      .doc(currency);
+
+  Stream<Wallet?> watchWallet(String uid, String currency) {
+    return walletDoc(uid, currency).snapshots().map((doc) {
+      if (!doc.exists) return null;
+      return Wallet.fromDocument(doc);
+    });
+  }
+
+  Stream<List<Wallet>> watchWallets(String uid) {
+    return _firestore
+        .collection('users')
+        .doc(uid)
+        .collection('wallets')
+        .snapshots()
+        .map((snap) => snap.docs.map((d) => Wallet.fromDocument(d)).toList());
+  }
+
+  Future<void> updateBalance(String uid, String currency, int delta) {
+    return walletDoc(
+      uid,
+      currency,
+    ).update({'balance': FieldValue.increment(delta)}).catchError((e) {
+      reportError(e, userMessage: 'Failed to update balance');
+    });
+  }
+}
+
+final walletRepositoryProvider = Provider<WalletRepository>((ref) {
+  return WalletRepository(ref.read(firestoreProvider));
+});

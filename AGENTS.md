@@ -54,5 +54,12 @@ Firestore is accessed only through `data/` repositories, never from widgets.
 - Firestore rules in `firestore.rules` must restrict all data to the signed-in owner (see `plan.md`).
 - The app-lock PIN is only a salted hash in secure storage; never store it in plain text or in Firebase.
 
+## Web notes
+- Hide the biometrics option on web (`local_auth` is unavailable).
+- On web the PIN is stored in browser storage and is less secure than on Android.
+- Firestore offline persistence works on web only in one tab.
+- PDF share downloads the file on web.
+- Never crash when a plugin isn't supported on web: wrap plugin calls (e.g. `local_auth`) in try/catch.
+
 ## Git
 - Small commits with clear messages (`feat:`, `fix:`, `test:`, `chore:`), one backlog task per commit when practical.

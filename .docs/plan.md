@@ -3,7 +3,7 @@
 Personal money management app in Flutter. One user, two currencies (CDF and USD), works offline, minimal and fast to use. This file is the source of truth for scope and design. If a decision changes, update this file.
 
 - Project name: `money_manager`. Android package: `com.namegmail.money_manager`.
-- Android first. Keep the code platform-neutral so iOS can be added later.
+- Android and web. Keep the code platform-neutral so iOS can be added later.
 
 ## Goals
 - Add an income/expense in about 2 taps from Home.
@@ -54,6 +54,13 @@ Queries: only a date range is queried in Firestore (no composite indexes). Categ
 10. **Report**: This month / Last month / Custom range -> PDF (A4): period, totals per wallet, full transaction list oldest first, no charts, footer note that conversions are excluded. Preview/Print and Share.
 11. **Settings**: exchange rate, categories (add, edit, archive/restore; never delete), theme (light/dark/system, saved in settings), app lock, sign out.
 12. **App lock**: 4-digit PIN stored as salted SHA-256 hash in secure storage (device only), optional biometrics, locks at app start and after 15 s in background. Lock screen sits above the Navigator (via `MaterialApp.builder`) using `Offstage` so app state survives. "Forgot PIN" signs out and removes the lock.
+
+## Web notes
+- Hide the biometrics option on web (`local_auth` is unavailable).
+- On web the PIN is stored in browser storage and is less secure than on Android.
+- Firestore offline persistence works on web only in one tab.
+- PDF share downloads the file on web.
+- Never crash when a plugin isn't supported on web: wrap plugin calls (e.g. `local_auth`) in try/catch.
 
 ## Default categories
 Expense: Food, Transport, Rent, Airtime & Internet, Utilities, Health, Education, Shopping, Family, Other. Income: Salary, Business, Gift, Other. Fixed ids so seeding twice is safe.

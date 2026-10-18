@@ -3,20 +3,20 @@
 Work top to bottom. Tick a task only when `dart format .`, `flutter analyze` and `flutter test` pass. Tasks marked (USER) need the user: stop and give exact steps.
 
 ## M0 — Setup
-- [ ] Create or open the Flutter project `money_manager` (org `com.namegmail`), add the packages from `plan.md`, create the folder structure from `AGENTS.md`
-- [ ] (USER) Firebase: create project, enable Email/Password, create Firestore (Standard edition, production mode), run `flutterfire configure`, set Android `minSdk` to at least 23
-- [ ] `main.dart` (Firebase init, Firestore offline persistence on), app theme light/dark, router skeleton, shared `reportError` helper with global ScaffoldMessenger key
+- [x] Create or open the Flutter project `money_manager` (org `com.namegmail`), add the packages from `plan.md`, create the folder structure from `AGENTS.md`
+- [x] (USER) Firebase: create project, enable Email/Password, create Firestore (Standard edition, production mode), run `flutterfire configure`, set Android `minSdk` to at least 23
+- [x] `main.dart` (Firebase init, Firestore offline persistence on), app theme light/dark, router skeleton, shared `reportError` helper with global ScaffoldMessenger key
 
 ## M1 — Core logic
-- [ ] `Currency`, `Money`, `ExchangeRate` + unit tests (see `plan.md` money rules)
-- [ ] Models: settings, wallet, category, transaction, conversion, budget (+ round-trip test)
-- [ ] `balanceDeltas` + tests
-- [ ] Repositories and Riverpod providers (auth, settings, wallets, categories, transactions, conversions, budgets)
-- [ ] `firestore.rules` from `plan.md` (USER publishes it in the Firebase console)
+- [x] `Currency`, `Money`, `ExchangeRate` + unit tests (see `plan.md` money rules)
+- [x] Models: settings, wallet, category, transaction, conversion, budget (+ round-trip test)
+- [x] `balanceDeltas` + tests
+- [x] Repositories and Riverpod providers (auth, settings, wallets, categories, transactions, conversions, budgets)
+- [x] `firestore.rules` from `plan.md` (USER publishes it in the Firebase console)
 
 ## M2 — Auth and onboarding
-- [ ] Sign in, sign up, reset password screens; Google method stays in `AuthRepository`, button commented out
-- [ ] `AuthGate` and first-run setup (rate, opening balances, seed default categories)
+- [x] Sign in, sign up, reset password screens; Google method stays in `AuthRepository`, button commented out
+- [x] `AuthGate` and first-run setup (rate, opening balances, seed default categories)
 
 ## M3 — Transactions
 - [ ] Add/edit sheet with amount keypad (+ keypad tests) and category chips
@@ -38,7 +38,7 @@ Work top to bottom. Tick a task only when `dart format .`, `flutter analyze` and
 
 ## M7 — Polish and release
 - [ ] Empty/error/loading states everywhere; app icon and splash
-- [ ] (USER) Manual pass: offline and online, both themes, both currencies, edit/delete balance checks
+- [ ] (USER) Manual pass: offline and online, both themes, both currencies, edit/delete balance checks, run on Chrome (`flutter run -d chrome`) and on a phone
 - [ ] Release build (APK/AAB) and check the `INTERNET` permission in the main manifest
 
 ## Later (v2)
