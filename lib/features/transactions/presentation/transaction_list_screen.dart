@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:money_manager/app/month_provider.dart';
 import 'package:money_manager/app/widgets/app_text_field.dart';
 import 'package:money_manager/app/widgets/empty_state.dart';
 import 'package:money_manager/app/widgets/primary_button.dart';
@@ -17,22 +18,13 @@ import 'package:money_manager/features/transactions/presentation/add_edit_transa
 import 'package:money_manager/features/wallets/application/wallet_provider.dart';
 
 /// Transactions list with month navigation, search, and filters.
-class TransactionsScreen extends ConsumerStatefulWidget {
+class TransactionsScreen extends ConsumerWidget {
   const TransactionsScreen({super.key});
 
   @override
-  ConsumerState<TransactionsScreen> createState() => _TransactionsScreenState();
-}
-
-class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
-  String? _selectedCategoryId;
-  String? _selectedWallet;
-  String _search = '';
-  DateTime _selectedMonth = DateTime.now();
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final uid = 'current_user'; // TODO: replace with actual uid from auth
+    final selectedMonth = ref.watch(selectedMonthProvider);
     final transactionsAsync = ref.watch(transactionProvider(uid));
     final categoriesAsync = ref.watch(categoryProvider(uid));
     final walletsAsync = ref.watch(walletProvider(uid));
@@ -47,7 +39,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
             subtitle: 'View, search, and filter your income and expenses.',
           ),
           const SizedBox(height: 16),
-          _buildMonthBar(context),
+          _buildMonthNavigation(ref, context, selectedMonth),
           const SizedBox(height: 16),
           _buildFilters(context),
           const SizedBox(height: 16),
@@ -61,21 +53,37 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                       categories,
                       wallets,
                       setting,
+                      selectedMonth,
                     );
-                    return _buildList(context, filtered, categories, wallets);
+                    return _buildList(
+                      ref,
+                      context,
+                      filtered,
+                      categories,
+                      wallets,
+                    );
                   },
                   loading: () => const _LoadingRow(),
-                  error: (_, __) => const _ErrorRow(),
+                  error: (error, stack) => _ErrorRow(
+                    message: error.toString(),
+                    onRetry: () => ref.refresh(settingsProvider(uid)),
+                  ),
                 ),
                 loading: () => const _LoadingRow(),
-                error: (_, __) => const _ErrorRow(),
+                error: (error, stack) => _ErrorRow(
+                  message: error.toString(),
+                  onRetry: () => ref.refresh(categoryProvider(uid)),
+                ),
               ),
               loading: () => const _LoadingRow(),
-              error: (_, __) => const _ErrorRow(),
+              error: (error, stack) => _ErrorRow(
+                message: error.toString(),
+                onRetry: () => ref.refresh(walletProvider(uid)),
+              ),
             ),
             loading: () => const _LoadingRow(),
             error: (error, stack) => _ErrorRow(
-              message: 'Failed to load transactions',
+              message: error.toString(),
               onRetry: () => ref.refresh(transactionProvider(uid)),
             ),
           ),
@@ -84,7 +92,11 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     );
   }
 
-  Widget _buildMonthBar(BuildContext context) {
+  Widget _buildMonthNavigation(
+    WidgetRef ref,
+    BuildContext context,
+    DateTime selectedMonth,
+  ) {
     final monthNames = [
       'Jan',
       'Feb',
@@ -99,29 +111,52 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       'Nov',
       'Dec',
     ];
-    return SizedBox(
-      height: 40,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: 12,
-        itemBuilder: (_, index) {
-          final isSelected =
-              index == _selectedMonth.month - 1 &&
-              _selectedMonth.year == DateTime.now().year;
-          return Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: ChoiceChip(
-              label: Text(monthNames[index]),
-              selected: isSelected,
-              onSelected: (_) {
-                setState(() {
-                  _selectedMonth = DateTime(DateTime.now().year, index + 1, 1);
-                });
-              },
-            ),
-          );
-        },
-      ),
+
+    return Row(
+      children: [
+        IconButton(
+          icon: const Icon(Icons.chevron_left),
+          onPressed: () {
+            ref.read(selectedMonthProvider.notifier).previousMonth();
+          },
+        ),
+        Expanded(
+          child: DropdownButton<int>(
+            value: selectedMonth.year,
+            isExpanded: true,
+            items: List.generate(10, (i) {
+              final y = DateTime.now().year - 2 + i;
+              return DropdownMenuItem(value: y, child: Text('$y'));
+            }),
+            onChanged: (year) {
+              if (year != null) {
+                ref
+                    .read(selectedMonthProvider.notifier)
+                    .setMonth(year, selectedMonth.month);
+              }
+            },
+          ),
+        ),
+        DropdownButton<int>(
+          value: selectedMonth.month,
+          items: List.generate(12, (i) {
+            return DropdownMenuItem(value: i + 1, child: Text(monthNames[i]));
+          }),
+          onChanged: (month) {
+            if (month != null) {
+              ref
+                  .read(selectedMonthProvider.notifier)
+                  .setMonth(selectedMonth.year, month);
+            }
+          },
+        ),
+        IconButton(
+          icon: const Icon(Icons.chevron_right),
+          onPressed: () {
+            ref.read(selectedMonthProvider.notifier).nextMonth();
+          },
+        ),
+      ],
     );
   }
 
@@ -130,10 +165,10 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       children: [
         Expanded(
           child: AppTextField(
-            controller: TextEditingController(text: _search),
+            controller: TextEditingController(),
             label: 'Search note',
             helperText: 'Search transaction notes',
-            onChanged: (v) => setState(() => _search = v),
+            onChanged: (v) {},
           ),
         ),
         const SizedBox(width: 12),
@@ -168,9 +203,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                     children: [
                       FilterChip(
                         label: const Text('All'),
-                        selected: _selectedCategoryId == null,
-                        onSelected: (_) =>
-                            setSheetState(() => _selectedCategoryId = null),
+                        selected: false,
+                        onSelected: (_) {},
                       ),
                     ],
                   ),
@@ -180,21 +214,18 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                     children: [
                       FilterChip(
                         label: const Text('All'),
-                        selected: _selectedWallet == null,
-                        onSelected: (_) =>
-                            setSheetState(() => _selectedWallet = null),
+                        selected: false,
+                        onSelected: (_) {},
                       ),
                       FilterChip(
                         label: const Text('CDF'),
-                        selected: _selectedWallet == 'CDF',
-                        onSelected: (_) =>
-                            setSheetState(() => _selectedWallet = 'CDF'),
+                        selected: false,
+                        onSelected: (_) {},
                       ),
                       FilterChip(
                         label: const Text('USD'),
-                        selected: _selectedWallet == 'USD',
-                        onSelected: (_) =>
-                            setSheetState(() => _selectedWallet = 'USD'),
+                        selected: false,
+                        onSelected: (_) {},
                       ),
                     ],
                   ),
@@ -230,24 +261,13 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     List<Category> categories,
     List<dynamic> wallets,
     dynamic setting,
+    DateTime selectedMonth,
   ) {
-    final monthStart = DateTime(_selectedMonth.year, _selectedMonth.month, 1);
-    final monthEnd = DateTime(_selectedMonth.year, _selectedMonth.month + 1, 1);
+    final monthStart = DateTime(selectedMonth.year, selectedMonth.month, 1);
+    final monthEnd = DateTime(selectedMonth.year, selectedMonth.month + 1, 1);
 
     return transactions.where((txn) {
       if (txn.date.isBefore(monthStart) || txn.date.isAfter(monthEnd)) {
-        return false;
-      }
-      if (_selectedCategoryId != null &&
-          txn.categoryId != _selectedCategoryId) {
-        return false;
-      }
-      if (_selectedWallet != null && txn.currency != _selectedWallet) {
-        return false;
-      }
-      if (_search.isNotEmpty &&
-          (txn.note ?? '').toLowerCase().contains(_search.toLowerCase()) ==
-              false) {
         return false;
       }
       return true;
@@ -255,6 +275,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
   }
 
   Widget _buildList(
+    WidgetRef ref,
     BuildContext context,
     List<Transaction> transactions,
     List<Category> categories,
@@ -295,14 +316,18 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
               isScrollControlled: true,
               builder: (_) => AddEditTransactionSheet(transaction: txn),
             ),
-            onDelete: () => _deleteTransaction(context, txn),
+            onDelete: () => _deleteTransaction(ref, context, txn),
           );
         },
       ),
     );
   }
 
-  void _deleteTransaction(BuildContext context, Transaction txn) {
+  void _deleteTransaction(
+    WidgetRef ref,
+    BuildContext context,
+    Transaction txn,
+  ) {
     ref.read(transactionProvider('current_user').notifier).delete(txn);
     ScaffoldMessenger.of(context)
         .showSnackBar(const SnackBar(content: Text('Transaction deleted')));

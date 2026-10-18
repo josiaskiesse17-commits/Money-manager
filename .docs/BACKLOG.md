@@ -30,7 +30,6 @@ Work top to bottom. Tick a task only when `dart format .`, `flutter analyze` and
 ## M5 — Budgets and charts
 - [ ] Budgets screen and dialog, budget math (+ boundary tests), alerts on Home
 - [ ] Charts: donut and daily bars (+ data tests)
-
 ## M6 — Reports, settings, lock
 - [ ] PDF report service (+ `%PDF` test) and Report screen (preview/print, share)
 - [ ] Settings: rate, categories (add/edit/archive), theme saved in settings

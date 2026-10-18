@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:money_manager/app/app_shell.dart';
+import 'package:money_manager/app/month_provider.dart';
 import 'package:money_manager/app/routes.dart';
 import 'package:money_manager/app/widgets/app_card.dart';
 import 'package:money_manager/app/widgets/amount_text.dart';
@@ -19,20 +20,13 @@ import 'package:money_manager/features/transactions/application/transaction_prov
 import 'package:money_manager/features/wallets/application/wallet_provider.dart';
 
 /// Home screen: wallet balances, month summary, recent transactions.
-class HomeScreen extends ConsumerStatefulWidget {
+class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   @override
-  ConsumerState<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends ConsumerState<HomeScreen> {
-  String _displayMode = 'combined'; // cdf | usd | combined
-  DateTime _selectedMonth = DateTime.now();
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final uid = 'current_user'; // TODO: replace with actual uid from auth
+    final selectedMonth = ref.watch(selectedMonthProvider);
     final walletsAsync = ref.watch(walletProvider(uid));
     final transactionsAsync = ref.watch(transactionProvider(uid));
     final budgetsAsync = ref.watch(budgetProvider(uid));
@@ -50,8 +44,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               subtitle: 'Your money at a glance.',
             ),
             const SizedBox(height: 16),
-            // Display toggle
-            _buildDisplayToggle(),
+            // Month navigation
+            _buildMonthNavigation(ref, context, selectedMonth),
             const SizedBox(height: 16),
             // Combined async data
             walletsAsync.when(
@@ -60,44 +54,75 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   data: (budgets) => categoriesAsync.when(
                     data: (categories) => settingsAsync.when(
                       data: (setting) {
-                        if (setting != null) {
-                          _displayMode = setting.displayMode;
-                        }
-                        final filtered = _filterByMonth(transactions);
+                        final filtered = transactions.where((t) {
+                          final monthStart = DateTime(
+                            selectedMonth.year,
+                            selectedMonth.month,
+                            1,
+                          );
+                          final monthEnd = DateTime(
+                            selectedMonth.year,
+                            selectedMonth.month + 1,
+                            1,
+                          );
+                          return t.date.isAfter(monthStart) &&
+                              t.date.isBefore(monthEnd);
+                        }).toList();
+
                         return Column(
                           children: [
                             // Wallet balances
-                            _buildWalletBalances(wallets, setting),
+                            _buildWalletBalances(wallets),
                             const SizedBox(height: 24),
                             // Month summary
-                            _buildMonthSummary(filtered, setting),
+                            _buildMonthSummary(filtered),
                             const SizedBox(height: 24),
                             // Budget alerts
-                            _buildBudgetAlerts(budgets, filtered, categories),
+                            _buildBudgetAlerts(
+                              budgets,
+                              filtered,
+                              categories,
+                              selectedMonth,
+                            ),
                             const SizedBox(height: 24),
                             // Recent transactions
                             _buildRecentTransactions(
+                              context,
                               filtered,
                               categories,
-                              wallets,
                             ),
                           ],
                         );
                       },
                       loading: () => const _LoadingRow(),
-                      error: (_, __) => const _ErrorRow(),
+                      error: (error, stack) => _ErrorRow(
+                        message: error.toString(),
+                        onRetry: () => ref.refresh(settingsProvider(uid)),
+                      ),
                     ),
                     loading: () => const _LoadingRow(),
-                    error: (_, __) => const _ErrorRow(),
+                    error: (error, stack) => _ErrorRow(
+                      message: error.toString(),
+                      onRetry: () => ref.refresh(categoryProvider(uid)),
+                    ),
                   ),
                   loading: () => const _LoadingRow(),
-                  error: (_, __) => const _ErrorRow(),
+                  error: (error, stack) => _ErrorRow(
+                    message: error.toString(),
+                    onRetry: () => ref.refresh(budgetProvider(uid)),
+                  ),
                 ),
                 loading: () => const _LoadingRow(),
-                error: (_, __) => const _ErrorRow(),
+                error: (error, stack) => _ErrorRow(
+                  message: error.toString(),
+                  onRetry: () => ref.refresh(transactionProvider(uid)),
+                ),
               ),
               loading: () => const _LoadingRow(),
-              error: (_, __) => const _ErrorRow(),
+              error: (error, stack) => _ErrorRow(
+                message: error.toString(),
+                onRetry: () => ref.refresh(walletProvider(uid)),
+              ),
             ),
           ],
         ),
@@ -105,35 +130,83 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Widget _buildDisplayToggle() {
-    return SegmentedButton<String>(
-      segments: const [
-        ButtonSegment(
-          value: 'cdf',
-          label: Text('CDF'),
-          icon: Icon(Icons.attach_money),
+  Widget _buildMonthNavigation(
+    WidgetRef ref,
+    BuildContext context,
+    DateTime selectedMonth,
+  ) {
+    final monthNames = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+
+    return Row(
+      children: [
+        IconButton(
+          icon: const Icon(Icons.chevron_left),
+          onPressed: () {
+            ref.read(selectedMonthProvider.notifier).previousMonth();
+          },
         ),
-        ButtonSegment(
-          value: 'usd',
-          label: Text('USD'),
-          icon: Icon(Icons.monetization_on),
+        Expanded(
+          child: DropdownButton<int>(
+            value: selectedMonth.year,
+            isExpanded: true,
+            items: List.generate(10, (i) {
+              final y = DateTime.now().year - 2 + i;
+              return DropdownMenuItem(value: y, child: Text('$y'));
+            }),
+            onChanged: (year) {
+              if (year != null) {
+                ref
+                    .read(selectedMonthProvider.notifier)
+                    .setMonth(year, selectedMonth.month);
+              }
+            },
+          ),
         ),
-        ButtonSegment(
-          value: 'combined',
-          label: Text('Both'),
-          icon: Icon(Icons.account_balance_wallet),
+        DropdownButton<int>(
+          value: selectedMonth.month,
+          items: List.generate(12, (i) {
+            return DropdownMenuItem(value: i + 1, child: Text(monthNames[i]));
+          }),
+          onChanged: (month) {
+            if (month != null) {
+              ref
+                  .read(selectedMonthProvider.notifier)
+                  .setMonth(selectedMonth.year, month);
+            }
+          },
+        ),
+        IconButton(
+          icon: const Icon(Icons.chevron_right),
+          onPressed: () {
+            ref.read(selectedMonthProvider.notifier).nextMonth();
+          },
         ),
       ],
-      selected: {_displayMode},
-      onSelectionChanged: (selection) {
-        setState(() => _displayMode = selection.first);
-      },
     );
   }
 
-  Widget _buildWalletBalances(List<dynamic> wallets, dynamic setting) {
-    final cdfWallet = wallets.where((w) => w.currency == 'CDF').firstOrNull;
-    final usdWallet = wallets.where((w) => w.currency == 'USD').firstOrNull;
+  Widget _buildWalletBalances(List<dynamic> wallets) {
+    final cdfWallet = wallets.firstWhere(
+      (w) => w.currency == 'CDF',
+      orElse: () => null,
+    );
+    final usdWallet = wallets.firstWhere(
+      (w) => w.currency == 'USD',
+      orElse: () => null,
+    );
 
     return Row(
       children: [
@@ -184,7 +257,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Widget _buildMonthSummary(List<Transaction> transactions, dynamic setting) {
+  Widget _buildMonthSummary(List<Transaction> transactions) {
     final income = transactions
         .where((t) => t.type == 'income')
         .fold<int>(0, (sum, t) => sum + t.amount);
@@ -228,10 +301,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     List<dynamic> budgets,
     List<Transaction> transactions,
     List<Category> categories,
+    DateTime selectedMonth,
   ) {
-    final now = DateTime.now();
-    final monthStart = DateTime(now.year, now.month, 1);
-    final monthEnd = DateTime(now.year, now.month + 1, 1);
+    final monthStart = DateTime(selectedMonth.year, selectedMonth.month, 1);
+    final monthEnd = DateTime(selectedMonth.year, selectedMonth.month + 1, 1);
 
     final alerts = <String>[];
     for (final budget in budgets) {
@@ -291,9 +364,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Widget _buildRecentTransactions(
+    BuildContext context,
     List<Transaction> transactions,
     List<Category> categories,
-    List<dynamic> wallets,
   ) {
     final recent = transactions.take(5).toList();
 
@@ -335,26 +408,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           }),
       ],
     );
-  }
-
-  List<Transaction> _filterByMonth(List<Transaction> transactions) {
-    final monthStart = DateTime(_selectedMonth.year, _selectedMonth.month, 1);
-    final monthEnd = DateTime(_selectedMonth.year, _selectedMonth.month + 1, 1);
-    return transactions.where((t) {
-      return t.date.isAfter(monthStart) && t.date.isBefore(monthEnd);
-    }).toList();
-  }
-}
-
-extension _FirstOrNull<T> on List<T> {
-  T? firstOrNull(bool Function(T element)? test) {
-    if (test == null) {
-      return isEmpty ? null : first;
-    }
-    for (final element in this) {
-      if (test(element)) return element;
-    }
-    return null;
   }
 }
 

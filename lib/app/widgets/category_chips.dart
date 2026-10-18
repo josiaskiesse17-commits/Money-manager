@@ -52,7 +52,9 @@ class CategoryChips extends StatelessWidget {
           label: Text(c.name),
           selected: isSelected,
           onSelected: (_) => onSelected(c.id),
-          backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
+          backgroundColor: Theme.of(context)
+              .colorScheme
+              .surfaceContainerHighest,
           selectedColor: chipColor,
           checkmarkColor: Colors.white,
           labelStyle: TextStyle(

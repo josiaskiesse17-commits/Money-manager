@@ -50,7 +50,7 @@ class _AddEditTransactionSheetState
     if (existing != null) {
       final isUSD = _currency == 'USD';
       final display = isUSD
-          ? '${(existing.amount / 100).toStringAsFixed(2)}'
+          ? (existing.amount / 100).toStringAsFixed(2)
           : existing.amount.toString();
       _amountCtrl.text = display;
       _noteCtrl.text = existing.note ?? '';
@@ -133,8 +133,10 @@ class _AddEditTransactionSheetState
       }
       if (mounted) context.pop();
     } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Failed to save: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Failed to save: $e')));
+      }
     }
   }
 
@@ -147,8 +149,10 @@ class _AddEditTransactionSheetState
       if (mounted) context.pop();
     } catch (e) {
       setState(() => _isDeleting = false);
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Failed to delete: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Failed to delete: $e')));
+      }
     }
   }
 
@@ -247,7 +251,7 @@ class _AddEditTransactionSheetState
                     onAmountChanged: (amount) {
                       final isUSD = _currency == 'USD';
                       final display = isUSD
-                          ? '${(amount / 100).toStringAsFixed(2)}'
+                          ? (amount / 100).toStringAsFixed(2)
                           : amount.toString();
                       _amountCtrl.text = display;
                     },
@@ -324,7 +328,7 @@ class _AddEditTransactionSheetState
           ),
         ),
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, __) =>
+        error: (_, _) =>
             Center(child: ErrorBanner(message: 'Failed to load categories')),
       ),
     );

@@ -18,10 +18,8 @@ const _lightColorScheme = ColorScheme(
   onSecondary: Color(0xFFFFFFFF),
   surface: Color(0xFFFFFFFF),
   onSurface: Color(0xFF111827),
-  surfaceVariant: Color(0xFFE9EDF3),
+  surfaceContainerHighest: Color(0xFFE9EDF3),
   onSurfaceVariant: Color(0xFF5B6575),
-  background: Color(0xFFF4F6F9),
-  onBackground: Color(0xFF111827),
   error: Color(0xFFC73E2E),
   onError: Color(0xFFFFFFFF),
   outline: Color(0xFFD5DBE4),
@@ -43,10 +41,8 @@ const _darkColorScheme = ColorScheme(
   onSecondary: Color(0xFF0E1319),
   surface: Color(0xFF161D26),
   onSurface: Color(0xFFEEF2F7),
-  surfaceVariant: Color(0xFF1F2833),
+  surfaceContainerHighest: Color(0xFF1F2833),
   onSurfaceVariant: Color(0xFF9AA6B6),
-  background: Color(0xFF0E1319),
-  onBackground: Color(0xFFEEF2F7),
   error: Color(0xFFF0786A),
   onError: Color(0xFF08233F),
   outline: Color(0xFF2B3644),
@@ -90,10 +86,10 @@ class MoneyColors extends ThemeExtension<MoneyColors> {
   MoneyColors lerp(ThemeExtension<MoneyColors>? other, double t) {
     if (other is! MoneyColors) return this;
     return MoneyColors(
-      income: Color.lerp(this.income, other.income, t) ?? this.income,
-      expense: Color.lerp(this.expense, other.expense, t) ?? this.expense,
-      warning: Color.lerp(this.warning, other.warning, t) ?? this.warning,
-      accent: Color.lerp(this.accent, other.accent, t) ?? this.accent,
+      income: Color.lerp(income, other.income, t) ?? income,
+      expense: Color.lerp(expense, other.expense, t) ?? expense,
+      warning: Color.lerp(warning, other.warning, t) ?? warning,
+      accent: Color.lerp(accent, other.accent, t) ?? accent,
     );
   }
 }

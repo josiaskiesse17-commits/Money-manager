@@ -233,7 +233,7 @@ class _ConvertScreenState extends ConsumerState<ConvertScreen> {
                 );
               },
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (_, __) => ErrorBanner(message: 'Failed to load settings'),
+              error: (_, _) => ErrorBanner(message: 'Failed to load settings'),
             ),
             const SizedBox(height: 32),
             // Conversion history
@@ -287,7 +287,7 @@ class _ConvertScreenState extends ConsumerState<ConvertScreen> {
                 );
               },
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (_, __) => ErrorBanner(message: 'Failed to load history'),
+              error: (_, _) => ErrorBanner(message: 'Failed to load history'),
             ),
           ],
         ),
