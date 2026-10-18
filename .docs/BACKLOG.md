@@ -31,9 +31,10 @@ Work top to bottom. Tick a task only when `dart format .`, `flutter analyze` and
 - [x] Budgets screen and dialog, budget math (+ boundary tests), alerts on Home
 - [x] Charts: donut and daily bars (+ data tests)
 ## M6 — Reports, settings, lock
-- [ ] PDF report service (+ `%PDF` test) and Report screen (preview/print, share)
-- [ ] Settings: rate, categories (add/edit/archive), theme saved in settings
-- [ ] App lock: PIN (salted hash), biometrics, lock gate, PIN setup, forgot-PIN flow (+ hashing test). Android: `USE_BIOMETRIC` permission and `FlutterFragmentActivity`
+- [x] PDF report service and Report screen (preview/print, share)
+- [x] Settings screen: rate, categories list, theme, app lock toggle, sign out
+- [x] App lock PIN: salted SHA-256 hash in secure storage
+- [ ] Biometrics, lock gate, PIN setup UI, forgot-PIN flow, Android USE_BIOMETRIC permission
 
 ## M7 — Polish and release
 - [ ] Empty/error/loading states everywhere; app icon and splash
