@@ -7,6 +7,7 @@ import 'package:money_manager/app/widgets/secondary_button.dart';
 import 'package:money_manager/app/widgets/section_header.dart';
 import 'package:money_manager/data/models/budget.dart';
 import 'package:money_manager/data/models/category.dart';
+import 'package:money_manager/features/auth/application/auth_provider.dart';
 import 'package:money_manager/features/categories/application/category_provider.dart';
 import 'package:money_manager/features/settings/application/settings_provider.dart';
 
@@ -19,7 +20,8 @@ class BudgetDialog extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final uid = 'current_user';
+    final user = ref.watch(authProvider);
+    final uid = user?.uid ?? '';
     final initialCategory = category;
     final initialBudget = budget;
 

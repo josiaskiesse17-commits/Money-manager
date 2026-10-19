@@ -14,14 +14,35 @@ class CategoryStateNotifier extends StateNotifier<AsyncValue<List<Category>>> {
   final String _uid;
 
   StreamSubscription? _subscription;
+  Timer? _timeoutTimer;
 
   Future<void> _load() async {
     state = const AsyncValue.loading();
+
+    _timeoutTimer = Timer(const Duration(seconds: 10), () {
+      if (state is AsyncLoading) {
+        state = AsyncValue.error(
+          'Categories loading timed out. Please check your connection.',
+          StackTrace.current,
+        );
+      }
+    });
+
     try {
-      _subscription = _repo.watchCategories(_uid).listen((categories) {
-        state = AsyncValue.data(categories);
-      });
+      _subscription = _repo
+          .watchCategories(_uid)
+          .listen(
+            (categories) {
+              _timeoutTimer?.cancel();
+              state = AsyncValue.data(categories);
+            },
+            onError: (error, stackTrace) {
+              _timeoutTimer?.cancel();
+              state = AsyncValue.error(error, stackTrace);
+            },
+          );
     } catch (e, st) {
+      _timeoutTimer?.cancel();
       state = AsyncValue.error(e, st);
     }
   }
@@ -37,6 +58,7 @@ class CategoryStateNotifier extends StateNotifier<AsyncValue<List<Category>>> {
   @override
   void dispose() {
     _subscription?.cancel();
+    _timeoutTimer?.cancel();
     super.dispose();
   }
 }

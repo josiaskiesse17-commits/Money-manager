@@ -10,6 +10,7 @@ import 'package:money_manager/app/widgets/primary_button.dart';
 import 'package:money_manager/app/widgets/secondary_button.dart';
 import 'package:money_manager/app/widgets/section_header.dart';
 import 'package:money_manager/data/models/transaction.dart';
+import 'package:money_manager/features/auth/application/auth_provider.dart';
 import 'package:money_manager/features/categories/application/category_provider.dart';
 import 'package:money_manager/features/transactions/application/transaction_provider.dart';
 
@@ -85,7 +86,7 @@ class _AddEditTransactionSheetState
     }
   }
 
-  Future<void> _save() async {
+  Future<void> _save(WidgetRef ref, String uid) async {
     if (!_formKey.currentState!.validate()) return;
     if (_categoryId == null) {
       ScaffoldMessenger.of(context)
@@ -118,17 +119,17 @@ class _AddEditTransactionSheetState
       categoryId: _categoryId!,
       date: _date,
       note: _noteCtrl.text.isEmpty ? null : _noteCtrl.text,
-      rateAtEntry: 280050, // TODO: read from settings
+      rateAtEntry: 280050,
       createdAt: widget.transaction?.createdAt ?? DateTime.now(),
       updatedAt: DateTime.now(),
     );
 
     try {
       if (widget.transaction == null) {
-        await ref.read(transactionProvider('current_user').notifier).add(txn);
+        await ref.read(transactionProvider(uid).notifier).add(txn);
       } else {
         await ref
-            .read(transactionProvider('current_user').notifier)
+            .read(transactionProvider(uid).notifier)
             .update(widget.transaction!, txn);
       }
       if (mounted) context.pop();
@@ -140,11 +141,11 @@ class _AddEditTransactionSheetState
     }
   }
 
-  Future<void> _delete() async {
+  Future<void> _delete(WidgetRef ref, String uid) async {
     setState(() => _isDeleting = true);
     try {
       await ref
-          .read(transactionProvider('current_user').notifier)
+          .read(transactionProvider(uid).notifier)
           .delete(widget.transaction!);
       if (mounted) context.pop();
     } catch (e) {
@@ -158,7 +159,9 @@ class _AddEditTransactionSheetState
 
   @override
   Widget build(BuildContext context) {
-    final categoriesAsync = ref.watch(categoryProvider('current_user'));
+    final user = ref.watch(authProvider);
+    final uid = user?.uid ?? '';
+    final categoriesAsync = ref.watch(categoryProvider(uid));
     final isEdit = widget.transaction != null;
 
     return Scaffold(
@@ -310,7 +313,9 @@ class _AddEditTransactionSheetState
                       Expanded(
                         child: SecondaryButton(
                           text: 'Delete',
-                          onPressed: _isDeleting ? null : _delete,
+                          onPressed: _isDeleting
+                              ? null
+                              : () => _delete(ref, uid),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -318,7 +323,7 @@ class _AddEditTransactionSheetState
                     Expanded(
                       child: PrimaryButton(
                         text: isEdit ? 'Save changes' : 'Add transaction',
-                        onPressed: _save,
+                        onPressed: () => _save(ref, uid),
                       ),
                     ),
                   ],

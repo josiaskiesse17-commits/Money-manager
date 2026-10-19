@@ -11,6 +11,7 @@ import 'package:money_manager/app/widgets/responsive_body.dart';
 import 'package:money_manager/app/widgets/section_header.dart';
 import 'package:money_manager/data/models/category.dart';
 import 'package:money_manager/data/models/transaction.dart';
+import 'package:money_manager/features/auth/application/auth_provider.dart';
 import 'package:money_manager/features/categories/application/category_provider.dart';
 import 'package:money_manager/features/settings/application/settings_provider.dart';
 import 'package:money_manager/features/transactions/application/transaction_provider.dart';
@@ -21,7 +22,8 @@ class ChartsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final uid = 'current_user';
+    final user = ref.watch(authProvider);
+    final uid = user?.uid ?? '';
     final selectedMonth = ref.watch(selectedMonthProvider);
     final transactionsAsync = ref.watch(transactionProvider(uid));
     final categoriesAsync = ref.watch(categoryProvider(uid));

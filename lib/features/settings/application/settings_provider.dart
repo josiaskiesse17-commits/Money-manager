@@ -30,14 +30,22 @@ class SettingsStateNotifier extends StateNotifier<AsyncValue<Setting?>> {
     });
 
     try {
-      _subscription = _repo.watchSettings(_uid).listen((setting) {
-        _timeoutTimer?.cancel();
-        if (setting == null) {
-          state = const AsyncValue.data(null); // Needs onboarding
-        } else {
-          state = AsyncValue.data(setting);
-        }
-      });
+      _subscription = _repo
+          .watchSettings(_uid)
+          .listen(
+            (setting) {
+              _timeoutTimer?.cancel();
+              if (setting == null) {
+                state = const AsyncValue.data(null); // Needs onboarding
+              } else {
+                state = AsyncValue.data(setting);
+              }
+            },
+            onError: (error, stackTrace) {
+              _timeoutTimer?.cancel();
+              state = AsyncValue.error(error, stackTrace);
+            },
+          );
     } catch (e, st) {
       _timeoutTimer?.cancel();
       state = AsyncValue.error(e, st);

@@ -13,6 +13,7 @@ import 'package:money_manager/app/widgets/primary_button.dart';
 import 'package:money_manager/app/widgets/responsive_body.dart';
 import 'package:money_manager/app/widgets/section_header.dart';
 import 'package:money_manager/data/models/conversion.dart';
+import 'package:money_manager/features/auth/application/auth_provider.dart';
 import 'package:money_manager/features/convert/application/conversion_provider.dart';
 import 'package:money_manager/features/settings/application/settings_provider.dart';
 
@@ -98,7 +99,7 @@ class _ConvertScreenState extends ConsumerState<ConvertScreen> {
     return buf.toString();
   }
 
-  Future<void> _saveConversion() async {
+  Future<void> _saveConversion(WidgetRef ref, String uid) async {
     if (_previewAmount == null) return;
 
     final fromAmount =
@@ -118,9 +119,7 @@ class _ConvertScreenState extends ConsumerState<ConvertScreen> {
     );
 
     try {
-      await ref
-          .read(conversionProvider('current_user').notifier)
-          .add(conversion);
+      await ref.read(conversionProvider(uid).notifier).add(conversion);
       if (mounted) context.pop();
     } catch (e) {
       setState(() => _error = 'Failed to save conversion');
@@ -129,7 +128,8 @@ class _ConvertScreenState extends ConsumerState<ConvertScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final uid = 'current_user';
+    final user = ref.watch(authProvider);
+    final uid = user?.uid ?? '';
     final settingsAsync = ref.watch(settingsProvider(uid));
     final conversionsAsync = ref.watch(conversionProvider(uid));
 
@@ -227,7 +227,7 @@ class _ConvertScreenState extends ConsumerState<ConvertScreen> {
                       text: 'Convert',
                       onPressed: _previewAmount == null
                           ? null
-                          : _saveConversion,
+                          : () => _saveConversion(ref, uid),
                     ),
                   ],
                 );
@@ -272,10 +272,7 @@ class _ConvertScreenState extends ConsumerState<ConvertScreen> {
                               icon: const Icon(Icons.delete, color: Colors.red),
                               onPressed: () async {
                                 await ref
-                                    .read(
-                                      conversionProvider('current_user')
-                                          .notifier,
-                                    )
+                                    .read(conversionProvider(uid).notifier)
                                     .delete(c);
                               },
                             ),

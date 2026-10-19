@@ -13,6 +13,7 @@ import 'package:money_manager/app/widgets/section_header.dart';
 import 'package:money_manager/app/widgets/transaction_list_item.dart';
 import 'package:money_manager/data/models/category.dart';
 import 'package:money_manager/data/models/transaction.dart';
+import 'package:money_manager/features/auth/application/auth_provider.dart';
 import 'package:money_manager/features/budgets/application/budget_provider.dart';
 import 'package:money_manager/features/categories/application/category_provider.dart';
 import 'package:money_manager/features/settings/application/settings_provider.dart';
@@ -25,7 +26,8 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final uid = 'current_user'; // TODO: replace with actual uid from auth
+    final user = ref.watch(authProvider);
+    final uid = user?.uid ?? '';
     final selectedMonth = ref.watch(selectedMonthProvider);
     final walletsAsync = ref.watch(walletProvider(uid));
     final transactionsAsync = ref.watch(transactionProvider(uid));
@@ -308,10 +310,9 @@ class HomeScreen extends ConsumerWidget {
 
     final alerts = <String>[];
     for (final budget in budgets) {
-      final cat = categories.firstWhere(
-        (c) => c.id == budget.categoryId,
-        orElse: () => categories.first,
-      );
+      final matching = categories.where((c) => c.id == budget.categoryId);
+      if (matching.isEmpty) continue;
+      final cat = matching.first;
       final spent = transactions
           .where(
             (t) =>
@@ -395,10 +396,9 @@ class HomeScreen extends ConsumerWidget {
           )
         else
           ...recent.map((txn) {
-            final cat = categories.firstWhere(
-              (c) => c.id == txn.categoryId,
-              orElse: () => categories.first,
-            );
+            final matching = categories.where((c) => c.id == txn.categoryId);
+            if (matching.isEmpty) return const SizedBox.shrink();
+            final cat = matching.first;
             return TransactionListItem(
               transaction: txn,
               category: cat,

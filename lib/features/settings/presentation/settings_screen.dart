@@ -23,7 +23,8 @@ class SettingsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final uid = 'current_user';
+    final user = ref.watch(authProvider);
+    final uid = user?.uid ?? '';
 
     return AppShell(
       currentRoute: AppRoutes.settings,

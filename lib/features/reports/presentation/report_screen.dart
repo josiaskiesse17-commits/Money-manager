@@ -13,6 +13,7 @@ import 'package:money_manager/app/widgets/section_header.dart';
 import 'package:money_manager/data/models/category.dart';
 import 'package:money_manager/data/models/transaction.dart';
 import 'package:money_manager/data/models/wallet.dart';
+import 'package:money_manager/features/auth/application/auth_provider.dart';
 import 'package:money_manager/features/categories/application/category_provider.dart';
 import 'package:money_manager/features/reports/application/report_service.dart';
 import 'package:money_manager/features/settings/application/settings_provider.dart';
@@ -85,7 +86,8 @@ class _ReportContent extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final uid = 'current_user';
+    final user = ref.watch(authProvider);
+    final uid = user?.uid ?? '';
     final txnsAsync = ref.watch(transactionProvider(uid));
     final catsAsync = ref.watch(categoryProvider(uid));
     final settingsAsync = ref.watch(settingsProvider(uid));
