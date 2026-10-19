@@ -34,7 +34,10 @@ Work top to bottom. Tick a task only when `dart format .`, `flutter analyze` and
 - [x] PDF report service and Report screen (preview/print, share)
 - [x] Settings screen: rate, categories list, theme, app lock toggle, sign out
 - [x] App lock PIN: salted SHA-256 hash in secure storage
-- [ ] Biometrics, lock gate, PIN setup UI, forgot-PIN flow, Android USE_BIOMETRIC permission
+- [x] App lock screen: PIN entry, biometrics (hidden on web), wrong-PIN feedback, forgot-PIN flow
+- [x] App lock: lock at app start and after 15s in background
+- [x] Android: USE_BIOMETRIC permission, FlutterFragmentActivity
+- [x] Tests: PIN hash, conversion math, budget status, PDF generation
 
 ## M7 — Polish and release
 - [ ] Empty/error/loading states everywhere; app icon and splash

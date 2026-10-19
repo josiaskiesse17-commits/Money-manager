@@ -8,6 +8,7 @@ import 'package:money_manager/features/convert/presentation/convert_screen.dart'
 import 'package:money_manager/features/charts/presentation/charts_screen.dart';
 import 'package:money_manager/features/home/presentation/home_screen.dart';
 import 'package:money_manager/features/reports/presentation/report_screen.dart';
+import 'package:money_manager/features/settings/presentation/pin_setup_screen.dart';
 import 'package:money_manager/features/settings/presentation/settings_screen.dart';
 import 'package:money_manager/features/transactions/presentation/transaction_list_screen.dart';
 
@@ -33,6 +34,10 @@ final router = GoRouter(
     GoRoute(
       path: AppRoutes.settings,
       builder: (_, _) => const SettingsScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.pinSetup,
+      builder: (_, _) => const PinSetupScreen(),
     ),
   ],
 );

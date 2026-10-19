@@ -18,4 +18,5 @@ class AppRoutes {
   static const charts = '/charts';
   static const reports = '/reports';
   static const settings = '/settings';
+  static const pinSetup = '/pin-setup';
 }

@@ -11,6 +11,8 @@ import 'package:money_manager/app/widgets/responsive_body.dart';
 import 'package:money_manager/app/widgets/secondary_button.dart';
 import 'package:money_manager/app/widgets/section_header.dart';
 import 'package:money_manager/data/models/category.dart';
+import 'package:money_manager/data/models/setting.dart';
+import 'package:money_manager/features/auth/application/auth_provider.dart';
 import 'package:money_manager/features/categories/application/category_provider.dart';
 import 'package:money_manager/features/settings/application/app_lock_provider.dart';
 import 'package:money_manager/features/settings/application/settings_provider.dart';
@@ -58,13 +60,13 @@ class _SettingsContent extends ConsumerWidget {
                 data: (categories) => Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildExchangeRateCard(setting!),
+                    _buildExchangeRateCard(setting!, ref),
                     const SizedBox(height: 16),
-                    _buildCategoriesSection(categories),
+                    _buildCategoriesSection(categories, ref),
                     const SizedBox(height: 24),
-                    _buildThemeCard(setting.theme),
+                    _buildThemeCard(setting, ref),
                     const SizedBox(height: 16),
-                    _buildAppLockCard(ref),
+                    _buildAppLockCard(context, ref),
                     const SizedBox(height: 24),
                     SecondaryButton(
                       text: 'Sign out',
@@ -80,7 +82,11 @@ class _SettingsContent extends ConsumerWidget {
         );
   }
 
-  Widget _buildExchangeRateCard(dynamic setting) {
+  Widget _buildExchangeRateCard(Setting setting, WidgetRef ref) {
+    final rateCtrl = TextEditingController(
+      text: (setting.usdToCdfRate / 100).toStringAsFixed(2),
+    );
+
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -91,23 +97,34 @@ class _SettingsContent extends ConsumerWidget {
           ),
           const SizedBox(height: 8),
           AppTextField(
-            controller: TextEditingController(
-              text: ((setting as dynamic).usdToCdfRate / 100).toStringAsFixed(
-                2,
-              ),
-            ),
+            controller: rateCtrl,
             label: 'Rate (CDF per USD)',
             keyboardType: TextInputType.number,
             onChanged: (v) {},
           ),
           const SizedBox(height: 16),
-          PrimaryButton(text: 'Save rate', onPressed: () {}),
+          PrimaryButton(
+            text: 'Save rate',
+            onPressed: () {
+              final text = rateCtrl.text
+                  .replaceAll(',', '')
+                  .replaceAll('.', '');
+              try {
+                final rateScaled = int.parse(text) * 100;
+                ref
+                    .read(settingsProvider(uid).notifier)
+                    .save(setting.copyWith(usdToCdfRate: rateScaled));
+              } catch (e) {
+                // Error handled by settings provider
+              }
+            },
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildCategoriesSection(List<Category> categories) {
+  Widget _buildCategoriesSection(List<Category> categories, WidgetRef ref) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -129,7 +146,9 @@ class _SettingsContent extends ConsumerWidget {
                   const SizedBox(width: 8),
                   SecondaryButton(
                     text: cat.archived ? 'Restore' : 'Archive',
-                    onPressed: () {},
+                    onPressed: () => ref
+                        .read(categoryProvider(uid).notifier)
+                        .archive(cat.id, !cat.archived),
                   ),
                 ],
               ),
@@ -142,7 +161,7 @@ class _SettingsContent extends ConsumerWidget {
     );
   }
 
-  Widget _buildThemeCard(String theme) {
+  Widget _buildThemeCard(Setting setting, WidgetRef ref) {
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -158,16 +177,22 @@ class _SettingsContent extends ConsumerWidget {
               ButtonSegment(value: 'dark', label: Text('Dark')),
               ButtonSegment(value: 'system', label: Text('System')),
             ],
-            selected: {theme},
-            onSelectionChanged: (selection) {},
+            selected: {setting.theme},
+            onSelectionChanged: (selection) {
+              ref
+                  .read(settingsProvider(uid).notifier)
+                  .save(setting.copyWith(theme: selection.first));
+            },
           ),
         ],
       ),
     );
   }
 
-  Widget _buildAppLockCard(WidgetRef ref) {
-    final hasPin = ref.watch(appLockProvider);
+  Widget _buildAppLockCard(BuildContext context, WidgetRef ref) {
+    final lockState = ref.watch(appLockProvider);
+    final lockNotifier = ref.read(appLockProvider.notifier);
+
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -179,15 +204,36 @@ class _SettingsContent extends ConsumerWidget {
           const SizedBox(height: 8),
           SwitchListTile(
             title: const Text('Enable app lock'),
-            value: hasPin,
-            onChanged: (v) {},
+            value: lockState,
+            onChanged: (v) async {
+              if (v) {
+                context.go(AppRoutes.pinSetup);
+              } else {
+                await lockNotifier.removePin();
+              }
+            },
           ),
-          if (hasPin) ...[
-            SecondaryButton(text: 'Change PIN', onPressed: () {}),
+          if (lockState) ...[
+            SecondaryButton(
+              text: 'Change PIN',
+              onPressed: () => context.go(AppRoutes.pinSetup),
+            ),
             const SizedBox(height: 8),
-            SecondaryButton(text: 'Forgot PIN', onPressed: () {}),
+            SecondaryButton(
+              text: 'Forgot PIN',
+              onPressed: () async {
+                await lockNotifier.removePin();
+                await ref.read(authProvider.notifier).signOut();
+                if (context.mounted) {
+                  context.go(AppRoutes.signIn);
+                }
+              },
+            ),
           ] else ...[
-            PrimaryButton(text: 'Set up PIN', onPressed: () {}),
+            PrimaryButton(
+              text: 'Set up PIN',
+              onPressed: () => context.go(AppRoutes.pinSetup),
+            ),
           ],
         ],
       ),

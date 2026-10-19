@@ -21,12 +21,18 @@ class SettingsRepository {
     });
   }
 
-  Future<void> saveSettings(String uid, Setting setting) {
-    return settingsDoc(uid)
-        .set(setting.toMap(), SetOptions(merge: true))
-        .catchError((e) {
-          reportError(e, userMessage: 'Failed to save settings');
-        });
+  Future<void> saveSettings(String uid, Setting setting) async {
+    try {
+      if (uid.trim().isEmpty) {
+        throw ArgumentError('Cannot save settings: user ID is empty.');
+      }
+
+      await settingsDoc(uid).set(setting.toMap(), SetOptions(merge: true));
+    } catch (e, stackTrace) {
+      reportError(e, userMessage: 'Failed to save settings. Please try again.');
+
+      Error.throwWithStackTrace(e, stackTrace);
+    }
   }
 }
 
