@@ -30,6 +30,7 @@ class _FirstRunSetupState extends ConsumerState<FirstRunSetup> {
   final _usdCtrl = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _saving = false;
+  String? _error;
 
   @override
   void dispose() {
@@ -39,9 +40,20 @@ class _FirstRunSetupState extends ConsumerState<FirstRunSetup> {
     super.dispose();
   }
 
-  Future<void> _save(String uid) async {
+  Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _saving = true);
+    _error = null;
+
+    final user = ref.read(authProvider);
+    if (user == null) {
+      setState(() {
+        _error = 'Not signed in. Please sign in again.';
+        _saving = false;
+      });
+      return;
+    }
+    final uid = user.uid;
 
     try {
       final rate =
@@ -58,11 +70,12 @@ class _FirstRunSetupState extends ConsumerState<FirstRunSetup> {
         onboarded: true,
       );
 
-      // Write settings via provider notifier so AuthGate rebuilds
-      // and transitions to Home once onboarded is true.
-      final user = ref.read(authProvider);
-      final uid = user?.uid ?? 'current_user';
-      await ref.read(settingsProvider(uid).notifier).save(setting);
+      // Write settings via provider notifier — fire-and-forget (offline-safe).
+      // AuthGate watches settingsProvider stream and transitions to Home
+      // once the doc syncs and onboarded is true.
+      unawaited(ref.read(settingsProvider(uid).notifier).save(setting));
+
+      // Write wallets — fire-and-forget.
       unawaited(
         ref
             .read(walletRepositoryProvider)
@@ -90,7 +103,7 @@ class _FirstRunSetupState extends ConsumerState<FirstRunSetup> {
             ),
       );
 
-      // Seed default categories (fixed ids, safe to seed twice)
+      // Seed default categories (fixed ids, safe to seed twice).
       final expenseCategories = [
         Category(
           id: 'cat_food',
@@ -213,8 +226,8 @@ class _FirstRunSetupState extends ConsumerState<FirstRunSetup> {
         unawaited(catRepo.saveCategory(uid, c));
       }
 
-      // Settings stream emits once Firestore syncs; AuthGate rebuilds
-      // and shows Home inside AppShell. No Navigator.pop() needed.
+      // Don't await Firestore writes. AuthGate rebuilds when settings stream
+      // emits the saved doc with onboarded=true.
       setState(() => _saving = false);
     } catch (e) {
       reportError(e, userMessage: 'Setup failed');
@@ -235,8 +248,6 @@ class _FirstRunSetupState extends ConsumerState<FirstRunSetup> {
 
   @override
   Widget build(BuildContext context) {
-    final uid = 'current_user'; // TODO: replace with actual uid from auth
-
     return AuthLayout(
       title: 'Set up your wallets',
       child: Form(
@@ -244,6 +255,37 @@ class _FirstRunSetupState extends ConsumerState<FirstRunSetup> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            if (_error != null) ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.error
+                      .withValues(alpha: 0.1),
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.error
+                        .withValues(alpha: 0.5),
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.error_outline,
+                      color: Colors.red,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _error!,
+                        style: const TextStyle(color: Colors.red, fontSize: 14),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
             AppTextField(
               controller: _rateCtrl,
               label: "Today's rate (1 USD = ? CDF)",
@@ -270,7 +312,7 @@ class _FirstRunSetupState extends ConsumerState<FirstRunSetup> {
             PrimaryButton(
               text: 'Start tracking',
               busy: _saving,
-              onPressed: _saving ? null : () => _save(uid),
+              onPressed: _saving ? null : _save,
             ),
           ],
         ),

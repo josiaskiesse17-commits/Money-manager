@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:money_manager/app/error_reporter.dart';
 import 'package:money_manager/app/routes.dart';
 import 'package:money_manager/app/widgets/app_text_field.dart';
 import 'package:money_manager/app/widgets/auth_layout.dart';
@@ -36,13 +35,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
 
     FocusScope.of(context).unfocus();
 
-    try {
-      await ref
-          .read(authProvider.notifier)
-          .signUp(_emailCtrl.text.trim(), _passwordCtrl.text);
-    } catch (e) {
-      reportError(e, userMessage: 'Sign up failed.');
-    }
+    await ref
+        .read(authProvider.notifier)
+        .signUp(_emailCtrl.text.trim(), _passwordCtrl.text);
   }
 
   @override
