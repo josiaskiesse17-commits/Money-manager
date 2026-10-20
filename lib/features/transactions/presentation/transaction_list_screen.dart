@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -306,10 +307,10 @@ class TransactionsScreen extends ConsumerWidget {
         itemCount: transactions.length,
         itemBuilder: (_, index) {
           final txn = transactions[index];
-          final cat = categories.firstWhere(
-            (c) => c.id == txn.categoryId,
-            orElse: () => categories.first,
-          );
+          final cat = categories
+              .where((c) => c.id == txn.categoryId)
+              .firstOrNull;
+          if (cat == null) return const SizedBox.shrink();
           return TransactionListItem(
             transaction: txn,
             category: cat,

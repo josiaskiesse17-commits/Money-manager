@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -170,10 +171,10 @@ class DonutChart extends StatelessWidget {
               PieChartData(
                 startDegreeOffset: 270,
                 sections: entries.map((entry) {
-                  final cat = categories.firstWhere(
-                    (c) => c.id == entry.key,
-                    orElse: () => categories.first,
-                  );
+                  final cat = categories
+                      .where((c) => c.id == entry.key)
+                      .firstOrNull;
+                  if (cat == null) return PieChartSectionData(value: 0);
                   final pct = total > 0 ? (entry.value * 100) ~/ total : 0;
                   return PieChartSectionData(
                     value: entry.value.toDouble(),
@@ -195,10 +196,10 @@ class DonutChart extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: entries.map((entry) {
-              final cat = categories.firstWhere(
-                (c) => c.id == entry.key,
-                orElse: () => categories.first,
-              );
+              final cat = categories
+                  .where((c) => c.id == entry.key)
+                  .firstOrNull;
+              if (cat == null) return const SizedBox.shrink();
               final pct = total > 0 ? (entry.value * 100) ~/ total : 0;
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 4),

@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -13,6 +14,7 @@ import 'package:money_manager/app/widgets/section_header.dart';
 import 'package:money_manager/app/widgets/transaction_list_item.dart';
 import 'package:money_manager/data/models/category.dart';
 import 'package:money_manager/data/models/transaction.dart';
+import 'package:money_manager/data/models/wallet.dart';
 import 'package:money_manager/features/auth/application/auth_provider.dart';
 import 'package:money_manager/features/budgets/application/budget_provider.dart';
 import 'package:money_manager/features/categories/application/category_provider.dart';
@@ -45,10 +47,10 @@ class HomeScreen extends ConsumerWidget {
               title: 'Home',
               subtitle: 'Your money at a glance.',
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 4),
             // Month navigation
             _buildMonthNavigation(ref, context, selectedMonth),
-            const SizedBox(height: 16),
+            const SizedBox(height: 4),
             // Combined async data
             walletsAsync.when(
               data: (wallets) => transactionsAsync.when(
@@ -75,10 +77,10 @@ class HomeScreen extends ConsumerWidget {
                           children: [
                             // Wallet balances
                             _buildWalletBalances(wallets),
-                            const SizedBox(height: 24),
+                            const SizedBox(height: 12),
                             // Month summary
                             _buildMonthSummary(filtered),
-                            const SizedBox(height: 24),
+                            const SizedBox(height: 12),
                             // Budget alerts
                             _buildBudgetAlerts(
                               budgets,
@@ -86,7 +88,7 @@ class HomeScreen extends ConsumerWidget {
                               categories,
                               selectedMonth,
                             ),
-                            const SizedBox(height: 24),
+                            const SizedBox(height: 12),
                             // Recent transactions
                             _buildRecentTransactions(
                               context,
@@ -201,13 +203,11 @@ class HomeScreen extends ConsumerWidget {
   }
 
   Widget _buildWalletBalances(List<dynamic> wallets) {
-    final cdfWallet = wallets.firstWhere(
+    final cdfWallet = wallets.whereType<Wallet>().firstWhereOrNull(
       (w) => w.currency == 'CDF',
-      orElse: () => null,
     );
-    final usdWallet = wallets.firstWhere(
+    final usdWallet = wallets.whereType<Wallet>().firstWhereOrNull(
       (w) => w.currency == 'USD',
-      orElse: () => null,
     );
 
     return Row(
@@ -346,7 +346,7 @@ class HomeScreen extends ConsumerWidget {
             'Budget alerts',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
           ...alerts.map(
             (a) => Padding(
               padding: const EdgeInsets.only(bottom: 4),
@@ -375,19 +375,23 @@ class HomeScreen extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const Text(
-              'Recent transactions',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            Expanded(
+              child: const Text(
+                'Recent transactions',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
+            const SizedBox(width: 8),
             TextButton(
               onPressed: () => context.go(AppRoutes.transactions),
               child: const Text('View all'),
             ),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
         if (recent.isEmpty)
           const EmptyState(
             icon: Icons.receipt_long,
@@ -438,14 +442,14 @@ class _ErrorRow extends StatelessWidget {
               size: 48,
               color: Theme.of(context).colorScheme.error,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 4),
             Text(
               message,
               style: Theme.of(context).textTheme.titleMedium,
               textAlign: TextAlign.center,
             ),
             if (onRetry != null) ...[
-              const SizedBox(height: 16),
+              const SizedBox(height: 4),
               SecondaryButton(text: 'Retry', onPressed: onRetry),
             ],
           ],

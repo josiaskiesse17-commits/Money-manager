@@ -63,10 +63,6 @@ class _AppState extends State<App> with WidgetsBindingObserver {
         _ref = ref;
         final lockState = ref.watch(appLockProvider);
 
-        if (lockState) {
-          return const _LockScreenContent();
-        }
-
         return MaterialApp.router(
           routerConfig: router,
           scaffoldMessengerKey: scaffoldMessengerKey,
@@ -74,6 +70,12 @@ class _AppState extends State<App> with WidgetsBindingObserver {
           theme: AppTheme.light(),
           darkTheme: AppTheme.dark(),
           themeMode: ThemeMode.system,
+          builder: (context, child) {
+            if (lockState) {
+              return const _LockScreenContent();
+            }
+            return child!;
+          },
         );
       },
     );
