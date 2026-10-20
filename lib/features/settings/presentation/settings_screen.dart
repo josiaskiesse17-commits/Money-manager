@@ -29,16 +29,19 @@ class SettingsScreen extends ConsumerWidget {
     return AppShell(
       currentRoute: AppRoutes.settings,
       child: ResponsiveBody(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SectionHeader(
-              title: 'Settings',
-              subtitle: 'Manage your Money Manager preferences.',
-            ),
-            const SizedBox(height: 16),
-            _SettingsContent(uid: uid),
-          ],
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SectionHeader(
+                title: 'Settings',
+                subtitle: 'Manage your Money Manager preferences.',
+              ),
+              const SizedBox(height: 16),
+              _SettingsContent(uid: uid),
+            ],
+          ),
         ),
       ),
     );
@@ -52,35 +55,45 @@ class _SettingsContent extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return ref
-        .watch(settingsProvider(uid))
-        .when(
-          data: (setting) => ref
-              .watch(categoryProvider(uid))
-              .when(
-                data: (categories) => Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildExchangeRateCard(setting!, ref),
-                    const SizedBox(height: 16),
-                    _buildCategoriesSection(categories, ref),
-                    const SizedBox(height: 24),
-                    _buildThemeCard(setting, ref),
-                    const SizedBox(height: 16),
-                    _buildAppLockCard(context, ref),
-                    const SizedBox(height: 24),
-                    SecondaryButton(
-                      text: 'Sign out',
-                      onPressed: () => context.go(AppRoutes.signIn),
-                    ),
-                  ],
-                ),
-                loading: () => const SizedBox.shrink(),
-                error: (error, _) => ErrorBanner(message: error.toString()),
+    final settingAsync = ref.watch(settingsProvider(uid));
+    final categoriesAsync = ref.watch(categoryProvider(uid));
+
+    return settingAsync.when(
+      data: (setting) => categoriesAsync.when(
+        data: (categories) {
+          final effectiveSetting =
+              setting ??
+              const Setting(
+                docId: 'main',
+                usdToCdfRate: 280050,
+                theme: 'light',
+                displayMode: 'combined',
+                onboarded: false,
+              );
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildExchangeRateCard(effectiveSetting, ref),
+              const SizedBox(height: 16),
+              _buildCategoriesSection(categories, ref),
+              const SizedBox(height: 24),
+              _buildThemeCard(effectiveSetting, ref),
+              const SizedBox(height: 16),
+              _buildAppLockCard(context, ref),
+              const SizedBox(height: 24),
+              SecondaryButton(
+                text: 'Sign out',
+                onPressed: () => context.go(AppRoutes.signIn),
               ),
-          loading: () => const SizedBox.shrink(),
-          error: (error, _) => ErrorBanner(message: error.toString()),
-        );
+            ],
+          );
+        },
+        loading: () => const SizedBox.shrink(),
+        error: (error, _) => ErrorBanner(message: error.toString()),
+      ),
+      loading: () => const SizedBox.shrink(),
+      error: (error, _) => ErrorBanner(message: error.toString()),
+    );
   }
 
   Widget _buildExchangeRateCard(Setting setting, WidgetRef ref) {

@@ -156,25 +156,24 @@ class HomeScreen extends ConsumerWidget {
 
     if (width >= 900) {
       // Wide: balances + summary + alerts on the left,
-      // recent transactions on the right. Cross-axis is bounded by the
-      // scroll view's width, so Expanded here is safe.
+      // recent transactions on the right. Row is inside a SingleChildScrollView
+      // (unbounded height), so Expanded/Flexible are not used — children size
+      // by intrinsic width/height instead.
       return Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                balances,
-                const SizedBox(height: 16),
-                summary,
-                const SizedBox(height: 16),
-                alerts,
-              ],
-            ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              balances,
+              const SizedBox(height: 16),
+              summary,
+              const SizedBox(height: 16),
+              alerts,
+            ],
           ),
           const SizedBox(width: 24),
-          Expanded(child: recent),
+          recent,
         ],
       );
     }

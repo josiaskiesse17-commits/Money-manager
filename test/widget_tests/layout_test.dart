@@ -4,11 +4,15 @@ import 'package:firebase_auth_mocks/firebase_auth_mocks.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:money_manager/app/app_shell.dart';
+import 'package:money_manager/app/routes.dart';
 import 'package:money_manager/app/theme.dart';
 import 'package:money_manager/app/widgets/responsive_body.dart';
 import 'package:money_manager/data/firebase_providers.dart';
 import 'package:money_manager/features/budgets/presentation/budgets_screen.dart';
+import 'package:money_manager/features/charts/presentation/charts_screen.dart';
 import 'package:money_manager/features/home/presentation/home_screen.dart';
+import 'package:money_manager/features/settings/presentation/settings_screen.dart';
 import 'package:money_manager/features/transactions/presentation/transaction_list_screen.dart';
 
 /// Layout tests: Home, Transactions and Budgets must render at phone
@@ -183,6 +187,62 @@ void main() {
             .first,
       );
       expect(padding.padding, EdgeInsets.all(entry.value));
+    }
+  });
+
+  /// AppShell layout tests: wraps Home, Transactions, Budgets, Charts and
+  /// Settings at phone (360x800), web (1280x800), and small-window (300x800)
+  /// sizes. Fails on any overflow or FlutterError.
+  group('AppShell layout', () {
+    final allSizes = <String, Size>{
+      '360x800': phone,
+      '1280x800': web,
+      '300x800': Size(300, 800),
+    };
+
+    final screens = <String, Widget>{
+      'Home': const HomeScreen(),
+      'Transactions': const TransactionsScreen(),
+      'Budgets': const BudgetsScreen(),
+      'Charts': const ChartsScreen(),
+      'Settings': const SettingsScreen(),
+    };
+
+    for (final sizeEntry in allSizes.entries) {
+      for (final screenEntry in screens.entries) {
+        testWidgets(
+          '${screenEntry.key} in AppShell at ${sizeEntry.key} without overflow',
+          (tester) async {
+            final overrides = await signedInOverrides();
+            await tester.binding.setSurfaceSize(sizeEntry.value);
+            addTearDown(() => tester.binding.setSurfaceSize(null));
+
+            await tester.pumpWidget(
+              ProviderScope(
+                overrides: overrides,
+                child: MaterialApp(
+                  theme: AppTheme.light(),
+                  darkTheme: AppTheme.dark(),
+                  home: AppShell(
+                    currentRoute: AppRoutes.home,
+                    child: screenEntry.value,
+                  ),
+                ),
+              ),
+            );
+            await tester.pump();
+            await tester.pump(const Duration(milliseconds: 100));
+            await tester.pump(const Duration(milliseconds: 100));
+
+            final exception = tester.takeException();
+            expect(
+              exception,
+              isNull,
+              reason: 'Unexpected exception: $exception',
+            );
+          },
+        );
+      }
     }
   });
 }

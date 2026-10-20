@@ -7,10 +7,11 @@ import 'package:flutter/material.dart';
 /// Pass [maxWidth] to override (e.g. 440 for auth/setup forms,
 /// 1040 for the wide two-column Home).
 ///
-/// Height is bounded to the screen so screens can use [Expanded] for
-/// lists; scrollable screens simply scroll inside that bound.
-/// [Align] (not [Center]) keeps content at the top and shrink-wraps
-/// safely when the incoming height constraint is unbounded.
+/// Height is NOT bounded here — screens must size themselves vertically
+/// (e.g. [SingleChildScrollView] for scrollable content, [shrinkWrap: true]
+/// for [ListView], [mainAxisSize: MainAxisSize.min] for [Column]). [Align]
+/// keeps content at the top and shrink-wraps safely when the incoming
+/// height constraint is unbounded.
 class ResponsiveBody extends StatelessWidget {
   final Widget child;
   final double? maxWidth;
@@ -33,7 +34,6 @@ class ResponsiveBody extends StatelessWidget {
       child: ConstrainedBox(
         constraints: BoxConstraints(
           maxWidth: maxWidth ?? (isPhone ? double.infinity : 720.0),
-          maxHeight: MediaQuery.of(context).size.height,
         ),
         child: Padding(
           padding: padding ?? EdgeInsets.all(isPhone ? 16.0 : 24.0),

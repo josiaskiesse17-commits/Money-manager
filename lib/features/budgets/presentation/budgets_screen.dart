@@ -46,23 +46,18 @@ class BudgetsScreen extends ConsumerWidget {
                 subtitle: 'Set monthly spending limits per category.',
               ),
               const SizedBox(height: 16),
-              Row(
+              Wrap(
+                spacing: 16,
+                runSpacing: 16,
                 children: [
-                  // Expanded: PrimaryButton is width-infinity, which a Row
-                  // only accepts with bounded (flex) constraints.
-                  Expanded(
-                    child: SecondaryButton(
-                      text: 'Add budget',
-                      onPressed: () => showDialog(
-                        context: context,
-                        builder: (_) => const BudgetDialog(),
-                      ),
+                  SecondaryButton(
+                    text: 'Add budget',
+                    onPressed: () => showDialog(
+                      context: context,
+                      builder: (_) => const BudgetDialog(),
                     ),
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: PrimaryButton(text: 'Save all', onPressed: () {}),
-                  ),
+                  PrimaryButton(text: 'Save all', onPressed: () {}),
                 ],
               ),
               const SizedBox(height: 16),

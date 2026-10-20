@@ -31,6 +31,24 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   fake_cloud_firestore: ^4.3.0
   firebase_auth_mocks: ^0.15.2
+  flutter_launcher_icons: ^0.14.1
+  flutter_native_splash: ^2.4.0
 
 flutter:
   uses-material-design: true
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: 'assets/icon/icon.png'
+  adaptive_icon_background: '#0F5FA8'
+  adaptive_icon_foreground: 'assets/icon/icon_foreground.png'
+
+flutter_native_splash:
+  color: '#0F5FA8'
+  image: 'assets/icon/icon.png'
+  android: true
+  ios: true
+  android_12:
+    image: 'assets/icon/icon.png'
+    color: '#0F5FA8'

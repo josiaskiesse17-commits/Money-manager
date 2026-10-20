@@ -296,44 +296,40 @@ class TransactionsScreen extends ConsumerWidget {
     List<dynamic> wallets,
   ) {
     if (transactions.isEmpty) {
-      return Expanded(
-        child: EmptyState(
-          icon: Icons.receipt_long,
-          title: 'No transactions yet',
-          subtitle: 'Add your first income or expense to get started.',
-          action: SecondaryButton(
-            text: 'Add transaction',
-            onPressed: () => showModalBottomSheet(
-              context: context,
-              isScrollControlled: true,
-              builder: (_) => const AddEditTransactionSheet(),
-            ),
+      return EmptyState(
+        icon: Icons.receipt_long,
+        title: 'No transactions yet',
+        subtitle: 'Add your first income or expense to get started.',
+        action: SecondaryButton(
+          text: 'Add transaction',
+          onPressed: () => showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            builder: (_) => const AddEditTransactionSheet(),
           ),
         ),
       );
     }
 
-    return Expanded(
-      child: ListView.builder(
-        itemCount: transactions.length,
-        itemBuilder: (_, index) {
-          final txn = transactions[index];
-          final cat = categories
-              .where((c) => c.id == txn.categoryId)
-              .firstOrNull;
-          if (cat == null) return const SizedBox.shrink();
-          return TransactionListItem(
-            transaction: txn,
-            category: cat,
-            onTap: () => showModalBottomSheet(
-              context: context,
-              isScrollControlled: true,
-              builder: (_) => AddEditTransactionSheet(transaction: txn),
-            ),
-            onDelete: () => _deleteTransaction(ref, context, txn),
-          );
-        },
-      ),
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: transactions.length,
+      itemBuilder: (_, index) {
+        final txn = transactions[index];
+        final cat = categories.where((c) => c.id == txn.categoryId).firstOrNull;
+        if (cat == null) return const SizedBox.shrink();
+        return TransactionListItem(
+          transaction: txn,
+          category: cat,
+          onTap: () => showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            builder: (_) => AddEditTransactionSheet(transaction: txn),
+          ),
+          onDelete: () => _deleteTransaction(ref, context, txn),
+        );
+      },
     );
   }
 
