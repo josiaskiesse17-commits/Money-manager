@@ -7,11 +7,11 @@ import 'package:flutter/material.dart';
 /// Pass [maxWidth] to override (e.g. 440 for auth/setup forms,
 /// 1040 for the wide two-column Home).
 ///
-/// Height is NOT bounded here — screens must size themselves vertically
-/// (e.g. [SingleChildScrollView] for scrollable content, [shrinkWrap: true]
-/// for [ListView], [mainAxisSize: MainAxisSize.min] for [Column]). [Align]
-/// keeps content at the top and shrink-wraps safely when the incoming
-/// height constraint is unbounded.
+/// Width is bounded to the screen size so [Expanded]/[Flexible] children
+/// inside [Row] work correctly. Height is NOT bounded — screens must size
+/// themselves vertically (e.g. [SingleChildScrollView] for scrollable
+/// content). Wraps content in [Material] so material widgets (dropdowns,
+/// etc.) have a Material ancestor.
 class ResponsiveBody extends StatelessWidget {
   final Widget child;
   final double? maxWidth;
@@ -29,14 +29,14 @@ class ResponsiveBody extends StatelessWidget {
     final width = MediaQuery.of(context).size.width;
     final isPhone = width < 600;
 
-    return Align(
-      alignment: Alignment.topCenter,
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxWidth: maxWidth ?? (isPhone ? double.infinity : 720.0),
-        ),
-        child: Padding(
-          padding: padding ?? EdgeInsets.all(isPhone ? 16.0 : 24.0),
+    final boundedMaxWidth = maxWidth ?? (isPhone ? width : 720.0);
+
+    return Material(
+      color: Colors.transparent,
+      child: Padding(
+        padding: padding ?? EdgeInsets.all(isPhone ? 16.0 : 24.0),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: boundedMaxWidth),
           child: child,
         ),
       ),

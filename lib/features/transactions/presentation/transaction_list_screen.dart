@@ -2,9 +2,7 @@ import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:money_manager/app/app_shell.dart';
 import 'package:money_manager/app/month_provider.dart';
-import 'package:money_manager/app/routes.dart';
 import 'package:money_manager/app/widgets/app_text_field.dart';
 import 'package:money_manager/app/widgets/empty_state.dart';
 import 'package:money_manager/app/widgets/error_banner.dart';
@@ -36,23 +34,22 @@ class TransactionsScreen extends ConsumerWidget {
     final walletsAsync = ref.watch(walletProvider(uid));
     final settingsAsync = ref.watch(settingsProvider(uid));
 
-    return AppShell(
-      currentRoute: AppRoutes.transactions,
-      child: ResponsiveBody(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SectionHeader(
-              title: 'Transactions',
-              subtitle: 'View, search, and filter your income and expenses.',
-            ),
-            const SizedBox(height: 16),
-            _buildMonthNavigation(ref, context, selectedMonth),
-            const SizedBox(height: 16),
-            _buildFilters(context),
-            const SizedBox(height: 16),
-            transactionsAsync.when(
+    return ResponsiveBody(
+      child: Column(
+        mainAxisSize: MainAxisSize.max,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SectionHeader(
+            title: 'Transactions',
+            subtitle: 'View, search, and filter your income and expenses.',
+          ),
+          const SizedBox(height: 16),
+          _buildMonthNavigation(ref, context, selectedMonth),
+          const SizedBox(height: 16),
+          _buildFilters(context),
+          const SizedBox(height: 16),
+          Expanded(
+            child: transactionsAsync.when(
               data: (transactions) => categoriesAsync.when(
                 data: (categories) => walletsAsync.when(
                   data: (wallets) => settingsAsync.when(
@@ -100,8 +97,8 @@ class TransactionsScreen extends ConsumerWidget {
                 onRetry: () => ref.refresh(transactionProvider(uid)),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -312,8 +309,6 @@ class TransactionsScreen extends ConsumerWidget {
     }
 
     return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
       itemCount: transactions.length,
       itemBuilder: (_, index) {
         final txn = transactions[index];

@@ -2,9 +2,7 @@ import 'package:collection/collection.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:money_manager/app/app_shell.dart';
 import 'package:money_manager/app/month_provider.dart';
-import 'package:money_manager/app/routes.dart';
 import 'package:money_manager/app/theme.dart';
 import 'package:money_manager/app/widgets/amount_text.dart';
 import 'package:money_manager/app/widgets/empty_state.dart';
@@ -30,114 +28,111 @@ class ChartsScreen extends ConsumerWidget {
     final categoriesAsync = ref.watch(categoryProvider(uid));
     final settingsAsync = ref.watch(settingsProvider(uid));
 
-    return AppShell(
-      currentRoute: AppRoutes.charts,
-      child: ResponsiveBody(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SectionHeader(
-              title: 'Charts',
-              subtitle: 'Spending breakdown for the selected month.',
-            ),
-            const SizedBox(height: 16),
-            transactionsAsync.when(
-              data: (transactions) => categoriesAsync.when(
-                data: (categories) => settingsAsync.when(
-                  data: (setting) {
-                    final monthStart = DateTime(
-                      selectedMonth.year,
-                      selectedMonth.month,
-                      1,
+    return ResponsiveBody(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SectionHeader(
+            title: 'Charts',
+            subtitle: 'Spending breakdown for the selected month.',
+          ),
+          const SizedBox(height: 16),
+          transactionsAsync.when(
+            data: (transactions) => categoriesAsync.when(
+              data: (categories) => settingsAsync.when(
+                data: (setting) {
+                  final monthStart = DateTime(
+                    selectedMonth.year,
+                    selectedMonth.month,
+                    1,
+                  );
+                  final monthEnd = DateTime(
+                    selectedMonth.year,
+                    selectedMonth.month + 1,
+                    1,
+                  );
+
+                  final expenseTxns = transactions.where((t) {
+                    return t.type == 'expense' &&
+                        t.date.isAfter(monthStart) &&
+                        t.date.isBefore(monthEnd);
+                  }).toList();
+
+                  if (expenseTxns.isEmpty) {
+                    return const EmptyState(
+                      icon: Icons.show_chart,
+                      title: 'No expenses this month',
+                      subtitle: 'Add expenses to see charts.',
                     );
-                    final monthEnd = DateTime(
-                      selectedMonth.year,
-                      selectedMonth.month + 1,
-                      1,
-                    );
+                  }
 
-                    final expenseTxns = transactions.where((t) {
-                      return t.type == 'expense' &&
-                          t.date.isAfter(monthStart) &&
-                          t.date.isBefore(monthEnd);
-                    }).toList();
+                  final displayCurrency = setting?.displayMode ?? 'CDF';
+                  final rateScaled = setting?.usdToCdfRate ?? 280050;
 
-                    if (expenseTxns.isEmpty) {
-                      return const EmptyState(
-                        icon: Icons.show_chart,
-                        title: 'No expenses this month',
-                        subtitle: 'Add expenses to see charts.',
-                      );
-                    }
-
-                    final displayCurrency = setting?.displayMode ?? 'CDF';
-                    final rateScaled = setting?.usdToCdfRate ?? 280050;
-
-                    final Map<String, int> categorySpending = {};
-                    for (final txn in expenseTxns) {
-                      int converted = txn.amount;
-                      if (txn.currency != displayCurrency) {
-                        if (txn.currency == 'USD' && displayCurrency == 'CDF') {
-                          converted = (txn.amount * rateScaled) ~/ 10000;
-                        } else if (txn.currency == 'CDF' &&
-                            displayCurrency == 'USD') {
-                          converted = (txn.amount * 10000) ~/ rateScaled;
-                        }
+                  final Map<String, int> categorySpending = {};
+                  for (final txn in expenseTxns) {
+                    int converted = txn.amount;
+                    if (txn.currency != displayCurrency) {
+                      if (txn.currency == 'USD' && displayCurrency == 'CDF') {
+                        converted = (txn.amount * rateScaled) ~/ 10000;
+                      } else if (txn.currency == 'CDF' &&
+                          displayCurrency == 'USD') {
+                        converted = (txn.amount * 10000) ~/ rateScaled;
                       }
-                      categorySpending[txn.categoryId] =
-                          (categorySpending[txn.categoryId] ?? 0) + converted;
                     }
+                    categorySpending[txn.categoryId] =
+                        (categorySpending[txn.categoryId] ?? 0) + converted;
+                  }
 
-                    final totalSpending = categorySpending.values.fold<int>(
-                      0,
-                      (sum, v) => sum + v,
-                    );
+                  final totalSpending = categorySpending.values.fold<int>(
+                    0,
+                    (sum, v) => sum + v,
+                  );
 
-                    return Column(
-                      children: [
-                        const SectionHeader(
-                          title: 'Spending by category',
-                          subtitle: 'Donut chart shows share of each category.',
+                  return Column(
+                    children: [
+                      const SectionHeader(
+                        title: 'Spending by category',
+                        subtitle: 'Donut chart shows share of each category.',
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        height: 280,
+                        child: DonutChart(
+                          categorySpending: categorySpending,
+                          categories: categories,
+                          total: totalSpending,
                         ),
-                        const SizedBox(height: 16),
-                        SizedBox(
-                          height: 280,
-                          child: DonutChart(
-                            categorySpending: categorySpending,
-                            categories: categories,
-                            total: totalSpending,
-                          ),
+                      ),
+                      const SizedBox(height: 32),
+                      const SectionHeader(
+                        title: 'Daily spending',
+                        subtitle: 'Bar chart shows spending per day.',
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        height: 280,
+                        child: DailyBarsChart(
+                          transactions: expenseTxns,
+                          categories: categories,
+                          month: selectedMonth,
+                          displayCurrency: displayCurrency,
+                          rateScaled: rateScaled,
                         ),
-                        const SizedBox(height: 32),
-                        const SectionHeader(
-                          title: 'Daily spending',
-                          subtitle: 'Bar chart shows spending per day.',
-                        ),
-                        const SizedBox(height: 16),
-                        SizedBox(
-                          height: 280,
-                          child: DailyBarsChart(
-                            transactions: expenseTxns,
-                            categories: categories,
-                            month: selectedMonth,
-                            displayCurrency: displayCurrency,
-                            rateScaled: rateScaled,
-                          ),
-                        ),
-                      ],
-                    );
-                  },
-                  loading: () => const SizedBox.shrink(),
-                  error: (_, _) => const SizedBox.shrink(),
-                ),
+                      ),
+                    ],
+                  );
+                },
                 loading: () => const SizedBox.shrink(),
                 error: (_, _) => const SizedBox.shrink(),
               ),
               loading: () => const SizedBox.shrink(),
               error: (_, _) => const SizedBox.shrink(),
             ),
-          ],
-        ),
+            loading: () => const SizedBox.shrink(),
+            error: (_, _) => const SizedBox.shrink(),
+          ),
+        ],
       ),
     );
   }

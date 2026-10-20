@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:money_manager/app/app_shell.dart';
 import 'package:money_manager/app/month_provider.dart';
-import 'package:money_manager/app/routes.dart';
 import 'package:money_manager/app/widgets/app_card.dart';
 import 'package:money_manager/app/widgets/amount_text.dart';
 import 'package:money_manager/app/widgets/empty_state.dart';
@@ -33,205 +31,199 @@ class BudgetsScreen extends ConsumerWidget {
     final transactionsAsync = ref.watch(transactionProvider(uid));
     final settingsAsync = ref.watch(settingsProvider(uid));
 
-    return AppShell(
-      currentRoute: AppRoutes.budgets,
-      child: ResponsiveBody(
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return ResponsiveBody(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SectionHeader(
+            title: 'Budgets',
+            subtitle: 'Set monthly spending limits per category.',
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 16,
+            runSpacing: 16,
             children: [
-              const SectionHeader(
-                title: 'Budgets',
-                subtitle: 'Set monthly spending limits per category.',
+              SecondaryButton(
+                text: 'Add budget',
+                onPressed: () => showDialog(
+                  context: context,
+                  builder: (_) => const BudgetDialog(),
+                ),
               ),
-              const SizedBox(height: 16),
-              Wrap(
-                spacing: 16,
-                runSpacing: 16,
-                children: [
-                  SecondaryButton(
-                    text: 'Add budget',
-                    onPressed: () => showDialog(
-                      context: context,
-                      builder: (_) => const BudgetDialog(),
-                    ),
-                  ),
-                  PrimaryButton(text: 'Save all', onPressed: () {}),
-                ],
-              ),
-              const SizedBox(height: 16),
-              budgetsAsync.when(
-                data: (budgets) => categoriesAsync.when(
-                  data: (categories) => transactionsAsync.when(
-                    data: (transactions) => settingsAsync.when(
-                      data: (setting) {
-                        final expenseCategories = categories
-                            .where((c) => c.isExpense && !c.archived)
-                            .toList();
+              PrimaryButton(text: 'Save all', onPressed: () {}),
+            ],
+          ),
+          const SizedBox(height: 16),
+          budgetsAsync.when(
+            data: (budgets) => categoriesAsync.when(
+              data: (categories) => transactionsAsync.when(
+                data: (transactions) => settingsAsync.when(
+                  data: (setting) {
+                    final expenseCategories = categories
+                        .where((c) => c.isExpense && !c.archived)
+                        .toList();
 
-                        if (expenseCategories.isEmpty) {
-                          return const EmptyState(
-                            icon: Icons.account_balance_wallet,
-                            title: 'No expense categories',
-                            subtitle:
-                                'Add expense categories in Settings first.',
-                          );
-                        }
+                    if (expenseCategories.isEmpty) {
+                      return const EmptyState(
+                        icon: Icons.account_balance_wallet,
+                        title: 'No expense categories',
+                        subtitle: 'Add expense categories in Settings first.',
+                      );
+                    }
 
-                        final monthStart = DateTime(
-                          selectedMonth.year,
-                          selectedMonth.month,
-                          1,
+                    final monthStart = DateTime(
+                      selectedMonth.year,
+                      selectedMonth.month,
+                      1,
+                    );
+                    final monthEnd = DateTime(
+                      selectedMonth.year,
+                      selectedMonth.month + 1,
+                      1,
+                    );
+                    final displayMode = setting?.displayMode ?? 'CDF';
+
+                    return ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: expenseCategories.length,
+                      itemBuilder: (_, index) {
+                        final cat = expenseCategories[index];
+                        final budget = budgets.firstWhere(
+                          (b) => b.categoryId == cat.id,
+                          orElse: () => Budget(
+                            categoryId: cat.id,
+                            currency: displayMode,
+                            monthlyLimit: 0,
+                          ),
                         );
-                        final monthEnd = DateTime(
-                          selectedMonth.year,
-                          selectedMonth.month + 1,
-                          1,
-                        );
-                        final displayMode = setting?.displayMode ?? 'CDF';
+                        final budgetCurrency = budget.currency;
+                        final spent = transactions
+                            .where(
+                              (t) =>
+                                  t.type == 'expense' &&
+                                  t.categoryId == cat.id &&
+                                  t.currency == budgetCurrency &&
+                                  t.date.isAfter(monthStart) &&
+                                  t.date.isBefore(monthEnd),
+                            )
+                            .fold<int>(0, (sum, t) => sum + t.amount);
 
-                        return ListView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: expenseCategories.length,
-                          itemBuilder: (_, index) {
-                            final cat = expenseCategories[index];
-                            final budget = budgets.firstWhere(
-                              (b) => b.categoryId == cat.id,
-                              orElse: () => Budget(
-                                categoryId: cat.id,
-                                currency: displayMode,
-                                monthlyLimit: 0,
-                              ),
-                            );
-                            final budgetCurrency = budget.currency;
-                            final spent = transactions
-                                .where(
-                                  (t) =>
-                                      t.type == 'expense' &&
-                                      t.categoryId == cat.id &&
-                                      t.currency == budgetCurrency &&
-                                      t.date.isAfter(monthStart) &&
-                                      t.date.isBefore(monthEnd),
-                                )
-                                .fold<int>(0, (sum, t) => sum + t.amount);
+                        final limit = budget.monthlyLimit;
+                        final pct = limit > 0 ? (spent * 100) ~/ limit : 0;
 
-                            final limit = budget.monthlyLimit;
-                            final pct = limit > 0 ? (spent * 100) ~/ limit : 0;
-
-                            return AppCard(
-                              margin: const EdgeInsets.only(bottom: 12),
-                              padding: const EdgeInsets.all(16),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                        return AppCard(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        cat.name,
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                      Text(
-                                        '$pct%',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w600,
-                                          color: pct >= 100
-                                              ? Colors.red
-                                              : pct >= 80
-                                              ? Colors.orange
-                                              : Colors.green,
-                                        ),
-                                      ),
-                                    ],
+                                  Text(
+                                    cat.name,
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
-                                  const SizedBox(height: 8),
-                                  LinearProgressIndicator(
-                                    value: limit > 0
-                                        ? (spent / limit).clamp(0.0, 1.0)
-                                        : 0,
-                                    backgroundColor: Theme.of(context)
-                                        .colorScheme
-                                        .surfaceContainerHighest,
-                                    color: pct >= 100
-                                        ? Colors.red
-                                        : pct >= 80
-                                        ? Colors.orange
-                                        : null,
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    children: [
-                                      AmountText(
-                                        amount: spent,
-                                        currency: budgetCurrency,
-                                        fontSize: 14,
-                                      ),
-                                      const Text(
-                                        ' / ',
-                                        style: TextStyle(fontSize: 14),
-                                      ),
-                                      AmountText(
-                                        amount: limit,
-                                        currency: budgetCurrency,
-                                        fontSize: 14,
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 12),
-                                  SecondaryButton(
-                                    text: 'Edit',
-                                    onPressed: () => showDialog(
-                                      context: context,
-                                      builder: (_) => BudgetDialog(
-                                        budget: budget,
-                                        category: cat,
-                                      ),
+                                  Text(
+                                    '$pct%',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: pct >= 100
+                                          ? Colors.red
+                                          : pct >= 80
+                                          ? Colors.orange
+                                          : Colors.green,
                                     ),
                                   ),
                                 ],
                               ),
-                            );
-                          },
+                              const SizedBox(height: 8),
+                              LinearProgressIndicator(
+                                value: limit > 0
+                                    ? (spent / limit).clamp(0.0, 1.0)
+                                    : 0,
+                                backgroundColor: Theme.of(context)
+                                    .colorScheme
+                                    .surfaceContainerHighest,
+                                color: pct >= 100
+                                    ? Colors.red
+                                    : pct >= 80
+                                    ? Colors.orange
+                                    : null,
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  AmountText(
+                                    amount: spent,
+                                    currency: budgetCurrency,
+                                    fontSize: 14,
+                                  ),
+                                  const Text(
+                                    ' / ',
+                                    style: TextStyle(fontSize: 14),
+                                  ),
+                                  AmountText(
+                                    amount: limit,
+                                    currency: budgetCurrency,
+                                    fontSize: 14,
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              SecondaryButton(
+                                text: 'Edit',
+                                onPressed: () => showDialog(
+                                  context: context,
+                                  builder: (_) => BudgetDialog(
+                                    budget: budget,
+                                    category: cat,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         );
                       },
-                      loading: () => const _LoadingState(),
-                      error: (error, stack) => ErrorBanner(
-                        message: 'Could not load settings.',
-                        fix: 'Check your connection and try again.',
-                        onRetry: () => ref.refresh(settingsProvider(uid)),
-                      ),
-                    ),
-                    loading: () => const _LoadingState(),
-                    error: (error, stack) => ErrorBanner(
-                      message: 'Could not load transactions.',
-                      fix: 'Check your connection and try again.',
-                      onRetry: () => ref.refresh(transactionProvider(uid)),
-                    ),
-                  ),
+                    );
+                  },
                   loading: () => const _LoadingState(),
                   error: (error, stack) => ErrorBanner(
-                    message: 'Could not load categories.',
+                    message: 'Could not load settings.',
                     fix: 'Check your connection and try again.',
-                    onRetry: () => ref.refresh(categoryProvider(uid)),
+                    onRetry: () => ref.refresh(settingsProvider(uid)),
                   ),
                 ),
                 loading: () => const _LoadingState(),
                 error: (error, stack) => ErrorBanner(
-                  message: 'Could not load budgets.',
+                  message: 'Could not load transactions.',
                   fix: 'Check your connection and try again.',
-                  onRetry: () => ref.refresh(budgetProvider(uid)),
+                  onRetry: () => ref.refresh(transactionProvider(uid)),
                 ),
               ),
-            ],
+              loading: () => const _LoadingState(),
+              error: (error, stack) => ErrorBanner(
+                message: 'Could not load categories.',
+                fix: 'Check your connection and try again.',
+                onRetry: () => ref.refresh(categoryProvider(uid)),
+              ),
+            ),
+            loading: () => const _LoadingState(),
+            error: (error, stack) => ErrorBanner(
+              message: 'Could not load budgets.',
+              fix: 'Check your connection and try again.',
+              onRetry: () => ref.refresh(budgetProvider(uid)),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
