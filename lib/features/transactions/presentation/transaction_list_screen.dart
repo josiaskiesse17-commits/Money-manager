@@ -2,9 +2,12 @@ import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:money_manager/app/app_shell.dart';
 import 'package:money_manager/app/month_provider.dart';
+import 'package:money_manager/app/routes.dart';
 import 'package:money_manager/app/widgets/app_text_field.dart';
 import 'package:money_manager/app/widgets/empty_state.dart';
+import 'package:money_manager/app/widgets/error_banner.dart';
 import 'package:money_manager/app/widgets/primary_button.dart';
 import 'package:money_manager/app/widgets/secondary_button.dart';
 import 'package:money_manager/app/widgets/responsive_body.dart';
@@ -33,64 +36,72 @@ class TransactionsScreen extends ConsumerWidget {
     final walletsAsync = ref.watch(walletProvider(uid));
     final settingsAsync = ref.watch(settingsProvider(uid));
 
-    return ResponsiveBody(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SectionHeader(
-            title: 'Transactions',
-            subtitle: 'View, search, and filter your income and expenses.',
-          ),
-          const SizedBox(height: 16),
-          _buildMonthNavigation(ref, context, selectedMonth),
-          const SizedBox(height: 16),
-          _buildFilters(context),
-          const SizedBox(height: 16),
-          transactionsAsync.when(
-            data: (transactions) => categoriesAsync.when(
-              data: (categories) => walletsAsync.when(
-                data: (wallets) => settingsAsync.when(
-                  data: (setting) {
-                    final filtered = _filter(
-                      transactions,
-                      categories,
-                      wallets,
-                      setting,
-                      selectedMonth,
-                    );
-                    return _buildList(
-                      ref,
-                      context,
-                      filtered,
-                      categories,
-                      wallets,
-                    );
-                  },
-                  loading: () => const _LoadingRow(),
-                  error: (error, stack) => _ErrorRow(
-                    message: error.toString(),
-                    onRetry: () => ref.refresh(settingsProvider(uid)),
+    return AppShell(
+      currentRoute: AppRoutes.transactions,
+      child: ResponsiveBody(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SectionHeader(
+              title: 'Transactions',
+              subtitle: 'View, search, and filter your income and expenses.',
+            ),
+            const SizedBox(height: 16),
+            _buildMonthNavigation(ref, context, selectedMonth),
+            const SizedBox(height: 16),
+            _buildFilters(context),
+            const SizedBox(height: 16),
+            transactionsAsync.when(
+              data: (transactions) => categoriesAsync.when(
+                data: (categories) => walletsAsync.when(
+                  data: (wallets) => settingsAsync.when(
+                    data: (setting) {
+                      final filtered = _filter(
+                        transactions,
+                        categories,
+                        wallets,
+                        setting,
+                        selectedMonth,
+                      );
+                      return _buildList(
+                        ref,
+                        context,
+                        filtered,
+                        categories,
+                        wallets,
+                      );
+                    },
+                    loading: () => const _LoadingState(),
+                    error: (error, stack) => ErrorBanner(
+                      message: 'Could not load settings.',
+                      fix: 'Check your connection and try again.',
+                      onRetry: () => ref.refresh(settingsProvider(uid)),
+                    ),
+                  ),
+                  loading: () => const _LoadingState(),
+                  error: (error, stack) => ErrorBanner(
+                    message: 'Could not load categories.',
+                    fix: 'Check your connection and try again.',
+                    onRetry: () => ref.refresh(categoryProvider(uid)),
                   ),
                 ),
-                loading: () => const _LoadingRow(),
-                error: (error, stack) => _ErrorRow(
-                  message: error.toString(),
-                  onRetry: () => ref.refresh(categoryProvider(uid)),
+                loading: () => const _LoadingState(),
+                error: (error, stack) => ErrorBanner(
+                  message: 'Could not load wallets.',
+                  fix: 'Check your connection and try again.',
+                  onRetry: () => ref.refresh(walletProvider(uid)),
                 ),
               ),
-              loading: () => const _LoadingRow(),
-              error: (error, stack) => _ErrorRow(
-                message: error.toString(),
-                onRetry: () => ref.refresh(walletProvider(uid)),
+              loading: () => const _LoadingState(),
+              error: (error, stack) => ErrorBanner(
+                message: 'Could not load transactions.',
+                fix: 'Check your connection and try again.',
+                onRetry: () => ref.refresh(transactionProvider(uid)),
               ),
             ),
-            loading: () => const _LoadingRow(),
-            error: (error, stack) => _ErrorRow(
-              message: error.toString(),
-              onRetry: () => ref.refresh(transactionProvider(uid)),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -339,46 +350,15 @@ class TransactionsScreen extends ConsumerWidget {
   }
 }
 
-class _LoadingRow extends StatelessWidget {
-  const _LoadingRow();
+/// Fixed-height loading state: safe inside scroll views (no [Expanded]).
+class _LoadingState extends StatelessWidget {
+  const _LoadingState();
 
   @override
   Widget build(BuildContext context) {
-    return const Expanded(child: Center(child: CircularProgressIndicator()));
-  }
-}
-
-class _ErrorRow extends StatelessWidget {
-  final String message;
-  final VoidCallback? onRetry;
-
-  const _ErrorRow({this.message = 'Failed to load', this.onRetry});
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.error_outline,
-              size: 48,
-              color: Theme.of(context).colorScheme.error,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              message,
-              style: Theme.of(context).textTheme.titleMedium,
-              textAlign: TextAlign.center,
-            ),
-            if (onRetry != null) ...[
-              const SizedBox(height: 16),
-              SecondaryButton(text: 'Retry', onPressed: onRetry),
-            ],
-          ],
-        ),
-      ),
+    return const SizedBox(
+      height: 160,
+      child: Center(child: CircularProgressIndicator()),
     );
   }
 }

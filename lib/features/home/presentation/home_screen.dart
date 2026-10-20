@@ -8,8 +8,8 @@ import 'package:money_manager/app/routes.dart';
 import 'package:money_manager/app/widgets/app_card.dart';
 import 'package:money_manager/app/widgets/amount_text.dart';
 import 'package:money_manager/app/widgets/empty_state.dart';
+import 'package:money_manager/app/widgets/error_banner.dart';
 import 'package:money_manager/app/widgets/responsive_body.dart';
-import 'package:money_manager/app/widgets/secondary_button.dart';
 import 'package:money_manager/app/widgets/section_header.dart';
 import 'package:money_manager/app/widgets/transaction_list_item.dart';
 import 'package:money_manager/data/models/category.dart';
@@ -36,101 +36,160 @@ class HomeScreen extends ConsumerWidget {
     final budgetsAsync = ref.watch(budgetProvider(uid));
     final categoriesAsync = ref.watch(categoryProvider(uid));
     final settingsAsync = ref.watch(settingsProvider(uid));
+    final width = MediaQuery.of(context).size.width;
 
     return AppShell(
       currentRoute: AppRoutes.home,
       child: ResponsiveBody(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SectionHeader(
-              title: 'Home',
-              subtitle: 'Your money at a glance.',
-            ),
-            const SizedBox(height: 4),
-            // Month navigation
-            _buildMonthNavigation(ref, context, selectedMonth),
-            const SizedBox(height: 4),
-            // Combined async data
-            walletsAsync.when(
-              data: (wallets) => transactionsAsync.when(
-                data: (transactions) => budgetsAsync.when(
-                  data: (budgets) => categoriesAsync.when(
-                    data: (categories) => settingsAsync.when(
-                      data: (setting) {
-                        final filtered = transactions.where((t) {
-                          final monthStart = DateTime(
-                            selectedMonth.year,
-                            selectedMonth.month,
-                            1,
-                          );
-                          final monthEnd = DateTime(
-                            selectedMonth.year,
-                            selectedMonth.month + 1,
-                            1,
-                          );
-                          return t.date.isAfter(monthStart) &&
-                              t.date.isBefore(monthEnd);
-                        }).toList();
+        // Wide web (900+) uses the two-column Home, max width 1040.
+        maxWidth: width >= 900 ? 1040 : null,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SectionHeader(
+                title: 'Home',
+                subtitle: 'Your money at a glance.',
+              ),
+              const SizedBox(height: 8),
+              // Month navigation
+              _buildMonthNavigation(ref, context, selectedMonth),
+              const SizedBox(height: 8),
+              // Combined async data
+              walletsAsync.when(
+                data: (wallets) => transactionsAsync.when(
+                  data: (transactions) => budgetsAsync.when(
+                    data: (budgets) => categoriesAsync.when(
+                      data: (categories) => settingsAsync.when(
+                        data: (setting) {
+                          final filtered = transactions.where((t) {
+                            final monthStart = DateTime(
+                              selectedMonth.year,
+                              selectedMonth.month,
+                              1,
+                            );
+                            final monthEnd = DateTime(
+                              selectedMonth.year,
+                              selectedMonth.month + 1,
+                              1,
+                            );
+                            return t.date.isAfter(monthStart) &&
+                                t.date.isBefore(monthEnd);
+                          }).toList();
 
-                        return Column(
-                          children: [
-                            // Wallet balances
-                            _buildWalletBalances(wallets),
-                            const SizedBox(height: 12),
-                            // Month summary
-                            _buildMonthSummary(filtered),
-                            const SizedBox(height: 12),
-                            // Budget alerts
-                            _buildBudgetAlerts(
-                              budgets,
-                              filtered,
-                              categories,
-                              selectedMonth,
-                            ),
-                            const SizedBox(height: 12),
-                            // Recent transactions
-                            _buildRecentTransactions(
-                              context,
-                              filtered,
-                              categories,
-                            ),
-                          ],
-                        );
-                      },
-                      loading: () => const _LoadingRow(),
-                      error: (error, stack) => _ErrorRow(
-                        message: error.toString(),
-                        onRetry: () => ref.refresh(settingsProvider(uid)),
+                          return _buildForWidth(
+                            context,
+                            wallets,
+                            filtered,
+                            budgets,
+                            categories,
+                            selectedMonth,
+                          );
+                        },
+                        loading: () => const _LoadingState(),
+                        error: (error, stack) => ErrorBanner(
+                          message: 'Could not load settings.',
+                          fix: 'Check your connection and try again.',
+                          onRetry: () => ref.refresh(settingsProvider(uid)),
+                        ),
+                      ),
+                      loading: () => const _LoadingState(),
+                      error: (error, stack) => ErrorBanner(
+                        message: 'Could not load categories.',
+                        fix: 'Check your connection and try again.',
+                        onRetry: () => ref.refresh(categoryProvider(uid)),
                       ),
                     ),
-                    loading: () => const _LoadingRow(),
-                    error: (error, stack) => _ErrorRow(
-                      message: error.toString(),
-                      onRetry: () => ref.refresh(categoryProvider(uid)),
+                    loading: () => const _LoadingState(),
+                    error: (error, stack) => ErrorBanner(
+                      message: 'Could not load budgets.',
+                      fix: 'Check your connection and try again.',
+                      onRetry: () => ref.refresh(budgetProvider(uid)),
                     ),
                   ),
-                  loading: () => const _LoadingRow(),
-                  error: (error, stack) => _ErrorRow(
-                    message: error.toString(),
-                    onRetry: () => ref.refresh(budgetProvider(uid)),
+                  loading: () => const _LoadingState(),
+                  error: (error, stack) => ErrorBanner(
+                    message: 'Could not load transactions.',
+                    fix: 'Check your connection and try again.',
+                    onRetry: () => ref.refresh(transactionProvider(uid)),
                   ),
                 ),
-                loading: () => const _LoadingRow(),
-                error: (error, stack) => _ErrorRow(
-                  message: error.toString(),
-                  onRetry: () => ref.refresh(transactionProvider(uid)),
+                loading: () => const _LoadingState(),
+                error: (error, stack) => ErrorBanner(
+                  message: 'Could not load your wallets.',
+                  fix: 'Check your connection and try again.',
+                  onRetry: () => ref.refresh(walletProvider(uid)),
                 ),
               ),
-              loading: () => const _LoadingRow(),
-              error: (error, stack) => _ErrorRow(
-                message: error.toString(),
-                onRetry: () => ref.refresh(walletProvider(uid)),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
+    );
+  }
+
+  /// Single-column stack on phones, two columns on wide web (900+).
+  ///
+  /// Both branches live inside a [SingleChildScrollView], so nothing here
+  /// may use [Expanded] on the main (vertical) axis — that would need a
+  /// bounded height, which a scroll view never provides.
+  Widget _buildForWidth(
+    BuildContext context,
+    List<Wallet> wallets,
+    List<Transaction> transactions,
+    List<dynamic> budgets,
+    List<Category> categories,
+    DateTime selectedMonth,
+  ) {
+    final width = MediaQuery.of(context).size.width;
+
+    final balances = _buildWalletBalances(wallets);
+    final summary = _buildMonthSummary(transactions);
+    final alerts = _buildBudgetAlerts(
+      budgets,
+      transactions,
+      categories,
+      selectedMonth,
+    );
+    final recent = _buildRecentTransactions(context, transactions, categories);
+
+    if (width >= 900) {
+      // Wide: balances + summary + alerts on the left,
+      // recent transactions on the right. Cross-axis is bounded by the
+      // scroll view's width, so Expanded here is safe.
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                balances,
+                const SizedBox(height: 16),
+                summary,
+                const SizedBox(height: 16),
+                alerts,
+              ],
+            ),
+          ),
+          const SizedBox(width: 24),
+          Expanded(child: recent),
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        balances,
+        const SizedBox(height: 16),
+        summary,
+        const SizedBox(height: 16),
+        alerts,
+        const SizedBox(height: 16),
+        recent,
+      ],
     );
   }
 
@@ -222,11 +281,11 @@ class HomeScreen extends ConsumerWidget {
                   'CDF',
                   style: TextStyle(fontSize: 14, color: Colors.grey),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 8),
                 AmountText(
                   amount: cdfWallet?.balance ?? 0,
                   currency: 'CDF',
-                  fontSize: 32,
+                  fontSize: 24,
                   fontWeight: FontWeight.w700,
                 ),
               ],
@@ -244,11 +303,11 @@ class HomeScreen extends ConsumerWidget {
                   'USD',
                   style: TextStyle(fontSize: 14, color: Colors.grey),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 8),
                 AmountText(
                   amount: usdWallet?.balance ?? 0,
                   currency: 'USD',
-                  fontSize: 32,
+                  fontSize: 24,
                   fontWeight: FontWeight.w700,
                 ),
               ],
@@ -286,12 +345,12 @@ class HomeScreen extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(title, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-          const SizedBox(height: 4),
+          const SizedBox(height: 8),
           AmountText(
             amount: amount,
             currency: currency,
             showSign: title == 'Net',
-            fontSize: 20,
+            fontSize: 16,
             fontWeight: FontWeight.w600,
           ),
         ],
@@ -346,10 +405,10 @@ class HomeScreen extends ConsumerWidget {
             'Budget alerts',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 8),
           ...alerts.map(
             (a) => Padding(
-              padding: const EdgeInsets.only(bottom: 4),
+              padding: const EdgeInsets.only(bottom: 8),
               child: Row(
                 children: [
                   Icon(Icons.warning, size: 16, color: Colors.orange),
@@ -391,7 +450,7 @@ class HomeScreen extends ConsumerWidget {
             ),
           ],
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 8),
         if (recent.isEmpty)
           const EmptyState(
             icon: Icons.receipt_long,
@@ -415,46 +474,15 @@ class HomeScreen extends ConsumerWidget {
   }
 }
 
-class _LoadingRow extends StatelessWidget {
-  const _LoadingRow();
+/// Fixed-height loading state: safe inside scroll views (no [Expanded]).
+class _LoadingState extends StatelessWidget {
+  const _LoadingState();
 
   @override
   Widget build(BuildContext context) {
-    return const Expanded(child: Center(child: CircularProgressIndicator()));
-  }
-}
-
-class _ErrorRow extends StatelessWidget {
-  final String message;
-  final VoidCallback? onRetry;
-
-  const _ErrorRow({this.message = 'Failed to load', this.onRetry});
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.error_outline,
-              size: 48,
-              color: Theme.of(context).colorScheme.error,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              message,
-              style: Theme.of(context).textTheme.titleMedium,
-              textAlign: TextAlign.center,
-            ),
-            if (onRetry != null) ...[
-              const SizedBox(height: 4),
-              SecondaryButton(text: 'Retry', onPressed: onRetry),
-            ],
-          ],
-        ),
-      ),
+    return const SizedBox(
+      height: 160,
+      child: Center(child: CircularProgressIndicator()),
     );
   }
 }

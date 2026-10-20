@@ -15,35 +15,22 @@ class ConversionStateNotifier
   final String _uid;
 
   StreamSubscription? _subscription;
-  Timer? _timeoutTimer;
 
   Future<void> _load() async {
     state = const AsyncValue.loading();
-
-    _timeoutTimer = Timer(const Duration(seconds: 10), () {
-      if (state is AsyncLoading) {
-        state = AsyncValue.error(
-          'Conversions loading timed out. Please check your connection.',
-          StackTrace.current,
-        );
-      }
-    });
 
     try {
       _subscription = _repo
           .watchConversions(_uid)
           .listen(
             (conversions) {
-              _timeoutTimer?.cancel();
               state = AsyncValue.data(conversions);
             },
             onError: (error, stackTrace) {
-              _timeoutTimer?.cancel();
               state = AsyncValue.error(error, stackTrace);
             },
           );
     } catch (e, st) {
-      _timeoutTimer?.cancel();
       state = AsyncValue.error(e, st);
     }
   }
@@ -59,7 +46,6 @@ class ConversionStateNotifier
   @override
   void dispose() {
     _subscription?.cancel();
-    _timeoutTimer?.cancel();
     super.dispose();
   }
 }
