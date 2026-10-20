@@ -1,9 +1,13 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:money_manager/app/error_reporter.dart';
 import 'package:money_manager/data/repositories/auth_repository.dart';
 
 class AuthStateNotifier extends StateNotifier<User?> {
+  static const _authTimeout = Duration(seconds: 20);
+
   AuthStateNotifier(this._repo) : super(null) {
     _repo.authStateChanges.listen((user) => state = user);
   }
@@ -26,10 +30,12 @@ class AuthStateNotifier extends StateNotifier<User?> {
     _signInError = null;
     _busy = true;
     try {
-      await _repo.signIn(email, password);
+      await _repo.signIn(email, password).timeout(_authTimeout);
     } on FirebaseAuthException catch (e) {
       _signInError = _mapAuthException(e.code);
       reportError(e, userMessage: _signInError);
+    } on TimeoutException catch (_) {
+      _signInError = 'Sign in timed out. Check your connection.';
     } catch (e) {
       _signInError = 'Sign in failed. Please try again.';
       reportError(e, userMessage: _signInError);
@@ -42,10 +48,12 @@ class AuthStateNotifier extends StateNotifier<User?> {
     _signUpError = null;
     _busy = true;
     try {
-      await _repo.signUp(email, password);
+      await _repo.signUp(email, password).timeout(_authTimeout);
     } on FirebaseAuthException catch (e) {
       _signUpError = _mapAuthException(e.code);
       reportError(e, userMessage: _signUpError);
+    } on TimeoutException catch (_) {
+      _signUpError = 'Sign up timed out. Check your connection.';
     } catch (e) {
       _signUpError = 'Sign up failed. Please try again.';
       reportError(e, userMessage: _signUpError);
@@ -58,11 +66,13 @@ class AuthStateNotifier extends StateNotifier<User?> {
     _resetError = null;
     _busy = true;
     try {
-      await _repo.resetPassword(email);
+      await _repo.resetPassword(email).timeout(_authTimeout);
       _resetSent = true;
     } on FirebaseAuthException catch (e) {
       _resetError = _mapAuthException(e.code);
       reportError(e, userMessage: _resetError);
+    } on TimeoutException catch (_) {
+      _resetError = 'Password reset timed out. Check your connection.';
     } catch (e) {
       _resetError = 'Password reset failed. Please try again.';
       reportError(e, userMessage: _resetError);

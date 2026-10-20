@@ -67,6 +67,7 @@ class _AppState extends State<App> with WidgetsBindingObserver {
           routerConfig: router,
           scaffoldMessengerKey: scaffoldMessengerKey,
           title: 'Money Manager',
+          debugShowCheckedModeBanner: false,
           theme: AppTheme.light(),
           darkTheme: AppTheme.dark(),
           themeMode: ThemeMode.system,

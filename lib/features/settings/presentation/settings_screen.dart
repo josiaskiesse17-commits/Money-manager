@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:money_manager/app/app_shell.dart';
 import 'package:money_manager/app/routes.dart';
 import 'package:money_manager/app/widgets/app_card.dart';
 import 'package:money_manager/app/widgets/app_text_field.dart';
@@ -26,22 +25,19 @@ class SettingsScreen extends ConsumerWidget {
     final user = ref.watch(authProvider);
     final uid = user?.uid ?? '';
 
-    return AppShell(
-      currentRoute: AppRoutes.settings,
-      child: ResponsiveBody(
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SectionHeader(
-                title: 'Settings',
-                subtitle: 'Manage your Money Manager preferences.',
-              ),
-              const SizedBox(height: 16),
-              _SettingsContent(uid: uid),
-            ],
-          ),
+    return ResponsiveBody(
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SectionHeader(
+              title: 'Settings',
+              subtitle: 'Manage your Money Manager preferences.',
+            ),
+            const SizedBox(height: 16),
+            _SettingsContent(uid: uid),
+          ],
         ),
       ),
     );

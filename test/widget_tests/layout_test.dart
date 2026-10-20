@@ -249,90 +249,6 @@ void main() {
   /// Transactions with 100 transactions must render without overflow at
   /// both phone and web sizes, and the list must be scrollable.
   group('Transactions 100 items', () {
-    Future<List<Override>> signedInWith100Txns() async {
-      final mockAuth = MockFirebaseAuth();
-      final mockFirestore = FakeFirebaseFirestore();
-
-      await mockAuth.createUserWithEmailAndPassword(
-        email: 'test@example.com',
-        password: 'password123',
-      );
-      await mockAuth.signInWithEmailAndPassword(
-        email: 'test@example.com',
-        password: 'password123',
-      );
-      const uid = 'test_uid';
-
-      await mockFirestore
-          .collection('users')
-          .doc(uid)
-          .collection('settings')
-          .doc('main')
-          .set({
-            'usdToCdfRate': 280050,
-            'theme': 'light',
-            'displayMode': 'combined',
-            'onboarded': true,
-          });
-      await mockFirestore
-          .collection('users')
-          .doc(uid)
-          .collection('wallets')
-          .doc('CDF')
-          .set({'currency': 'CDF', 'openingBalance': 35000, 'balance': 42000});
-      await mockFirestore
-          .collection('users')
-          .doc(uid)
-          .collection('wallets')
-          .doc('USD')
-          .set({'currency': 'USD', 'openingBalance': 10000, 'balance': 15000});
-      await mockFirestore
-          .collection('users')
-          .doc(uid)
-          .collection('categories')
-          .doc('cat_food')
-          .set({
-            'name': 'Food',
-            'icon': 'restaurant',
-            'color': 0xFFFF0000,
-            'type': 'expense',
-            'archived': false,
-          });
-
-      final now = DateTime.now();
-      final batch = mockFirestore.batch();
-      for (int i = 0; i < 100; i++) {
-        final txnRef = mockFirestore
-            .collection('users')
-            .doc(uid)
-            .collection('transactions')
-            .doc('txn_$i');
-        batch.set(txnRef, {
-          'amount': 12345 + i * 10,
-          'currency': 'USD',
-          'type': i % 2 == 0 ? 'expense' : 'income',
-          'categoryId': 'cat_food',
-          'date': Timestamp.fromDate(
-            DateTime(now.year, now.month, 1, (i % 28) + 1),
-          ),
-          'note': 'Transaction $i',
-          'rateAtEntry': 280050,
-          'createdAt': Timestamp.fromDate(
-            DateTime(now.year, now.month, 1, (i % 28) + 1),
-          ),
-          'updatedAt': Timestamp.fromDate(
-            DateTime(now.year, now.month, 1, (i % 28) + 1),
-          ),
-        });
-      }
-      await batch.commit();
-
-      return [
-        firebaseAuthProvider.overrideWithValue(mockAuth),
-        firestoreProvider.overrideWithValue(mockFirestore),
-      ];
-    }
-
     for (final size in [phone, web]) {
       testWidgets(
         'renders 100 transactions at ${size.width}x${size.height} without overflow',
@@ -366,13 +282,21 @@ void main() {
               .doc(uid)
               .collection('wallets')
               .doc('CDF')
-              .set({'currency': 'CDF', 'openingBalance': 35000, 'balance': 42000});
+              .set({
+                'currency': 'CDF',
+                'openingBalance': 35000,
+                'balance': 42000,
+              });
           await mockFirestore
               .collection('users')
               .doc(uid)
               .collection('wallets')
               .doc('USD')
-              .set({'currency': 'USD', 'openingBalance': 10000, 'balance': 15000});
+              .set({
+                'currency': 'USD',
+                'openingBalance': 10000,
+                'balance': 15000,
+              });
           await mockFirestore
               .collection('users')
               .doc(uid)
