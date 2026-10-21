@@ -21,7 +21,8 @@ class TransactionsScreen extends ConsumerStatefulWidget {
   const TransactionsScreen({super.key});
 
   @override
-  ConsumerState<TransactionsScreen> createState() => _TransactionsScreenState();
+  ConsumerState<TransactionsScreen> createState() =>
+      _TransactionsScreenState();
 }
 
 class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
@@ -47,7 +48,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
 
     if (uid.isEmpty) {
       return const Scaffold(
-        body: SafeArea(child: Center(child: CircularProgressIndicator())),
+        body: SafeArea(
+          child: Center(child: CircularProgressIndicator()),
+        ),
       );
     }
 
@@ -248,7 +251,10 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                   isExpanded: true,
                   decoration: InputDecoration(
                     labelText: 'Year',
-                    prefixIcon: const Icon(Icons.event_outlined, size: 18),
+                    prefixIcon: const Icon(
+                      Icons.event_outlined,
+                      size: 18,
+                    ),
                     filled: true,
                     fillColor: Theme.of(context).colorScheme.surface,
                     contentPadding: const EdgeInsets.symmetric(
@@ -333,7 +339,10 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
             children: [
               searchField,
               const SizedBox(height: 10),
-              Align(alignment: Alignment.centerRight, child: filterButton),
+              Align(
+                alignment: Alignment.centerRight,
+                child: filterButton,
+              ),
             ],
           );
         }
@@ -360,133 +369,225 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     final result = await showModalBottomSheet<_TransactionFilters>(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       showDragHandle: true,
       builder: (sheetContext) {
         return StatefulBuilder(
           builder: (sheetContext, setSheetState) {
             final theme = Theme.of(sheetContext);
+            final colors = theme.colorScheme;
+            final media = MediaQuery.of(sheetContext);
+            final compact = media.size.width < 400;
 
-            return SafeArea(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.fromLTRB(
-                  20,
-                  8,
-                  20,
-                  24 + MediaQuery.of(sheetContext).viewInsets.bottom,
+            return AnimatedPadding(
+              duration: const Duration(milliseconds: 150),
+              padding: EdgeInsets.only(
+                bottom: media.viewInsets.bottom,
+              ),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: media.size.height * 0.72,
                 ),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text(
-                      'Filter transactions',
-                      style: theme.textTheme.headlineSmall,
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Narrow your results by type and currency.',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
+                    Padding(
+                      padding: EdgeInsets.fromLTRB(
+                        compact ? 20 : 24,
+                        8,
+                        compact ? 20 : 24,
+                        16,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Filter transactions',
+                            style: theme.textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.3,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Narrow results by type and currency.',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: colors.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 24),
-                    Text(
-                      'Transaction type',
-                      style: theme.textTheme.titleMedium,
+                    Divider(
+                      height: 1,
+                      color: colors.outlineVariant.withValues(alpha: 0.6),
                     ),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        _buildFilterChip(
-                          label: 'All types',
-                          value: 'all',
-                          currentValue: draftType,
-                          onSelected: (value) {
-                            setSheetState(() => draftType = value);
-                          },
+                    Flexible(
+                      child: SingleChildScrollView(
+                        keyboardDismissBehavior:
+                            ScrollViewKeyboardDismissBehavior.onDrag,
+                        padding: EdgeInsets.fromLTRB(
+                          compact ? 20 : 24,
+                          18,
+                          compact ? 20 : 24,
+                          20,
                         ),
-                        _buildFilterChip(
-                          label: 'Income',
-                          value: 'income',
-                          currentValue: draftType,
-                          onSelected: (value) {
-                            setSheetState(() => draftType = value);
-                          },
-                        ),
-                        _buildFilterChip(
-                          label: 'Expenses',
-                          value: 'expense',
-                          currentValue: draftType,
-                          onSelected: (value) {
-                            setSheetState(() => draftType = value);
-                          },
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                    Text('Currency', style: theme.textTheme.titleMedium),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        _buildFilterChip(
-                          label: 'All currencies',
-                          value: 'all',
-                          currentValue: draftCurrency,
-                          onSelected: (value) {
-                            setSheetState(() => draftCurrency = value);
-                          },
-                        ),
-                        _buildFilterChip(
-                          label: 'CDF',
-                          value: 'CDF',
-                          currentValue: draftCurrency,
-                          onSelected: (value) {
-                            setSheetState(() => draftCurrency = value);
-                          },
-                        ),
-                        _buildFilterChip(
-                          label: 'USD',
-                          value: 'USD',
-                          currentValue: draftCurrency,
-                          onSelected: (value) {
-                            setSheetState(() => draftCurrency = value);
-                          },
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 28),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () {
-                              setSheetState(() {
-                                draftType = 'all';
-                                draftCurrency = 'all';
-                              });
-                            },
-                            child: const Text('Reset'),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: FilledButton(
-                            onPressed: () {
-                              Navigator.of(sheetContext).pop(
-                                _TransactionFilters(
-                                  type: draftType,
-                                  currency: draftCurrency,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'TRANSACTION TYPE',
+                              style: theme.textTheme.labelLarge?.copyWith(
+                                color: colors.onSurfaceVariant,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.8,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            _FilterChoiceGroup(
+                              options: const [
+                                _FilterOption('All types', 'all'),
+                                _FilterOption('Income', 'income'),
+                                _FilterOption('Expenses', 'expense'),
+                              ],
+                              selectedValue: draftType,
+                              onSelected: (value) {
+                                setSheetState(() {
+                                  draftType = value;
+                                });
+                              },
+                            ),
+                            const SizedBox(height: 22),
+                            Text(
+                              'PAYMENT CURRENCY',
+                              style: theme.textTheme.labelLarge?.copyWith(
+                                color: colors.onSurfaceVariant,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.8,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: colors.surfaceContainerLow,
+                                borderRadius: BorderRadius.circular(15),
+                                border: Border.all(
+                                  color: colors.outlineVariant.withValues(
+                                    alpha: 0.55,
+                                  ),
                                 ),
-                              );
-                            },
-                            child: const Text('Apply filters'),
-                          ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: _FilterCurrencyOption(
+                                      label: 'All',
+                                      description: 'Any currency',
+                                      symbol: '↔',
+                                      selected: draftCurrency == 'all',
+                                      onTap: () {
+                                        setSheetState(() {
+                                          draftCurrency = 'all';
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Expanded(
+                                    child: _FilterCurrencyOption(
+                                      label: 'CDF',
+                                      description: 'Congolese franc',
+                                      symbol: 'FC',
+                                      selected: draftCurrency == 'CDF',
+                                      onTap: () {
+                                        setSheetState(() {
+                                          draftCurrency = 'CDF';
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Expanded(
+                                    child: _FilterCurrencyOption(
+                                      label: 'USD',
+                                      description: 'US dollar',
+                                      symbol: '\$',
+                                      selected: draftCurrency == 'USD',
+                                      onTap: () {
+                                        setSheetState(() {
+                                          draftCurrency = 'USD';
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
+                    ),
+                    Divider(
+                      height: 1,
+                      color: colors.outlineVariant.withValues(alpha: 0.6),
+                    ),
+                    Padding(
+                      padding: EdgeInsets.fromLTRB(
+                        compact ? 20 : 24,
+                        12,
+                        compact ? 20 : 24,
+                        12 + media.padding.bottom,
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () {
+                                setSheetState(() {
+                                  draftType = 'all';
+                                  draftCurrency = 'all';
+                                });
+                              },
+                              style: OutlinedButton.styleFrom(
+                                minimumSize: const Size(0, 44),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: const Text('Reset'),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: FilledButton(
+                              onPressed: () {
+                                Navigator.of(sheetContext).pop(
+                                  _TransactionFilters(
+                                    type: draftType,
+                                    currency: draftCurrency,
+                                  ),
+                                );
+                              },
+                              style: FilledButton.styleFrom(
+                                minimumSize: const Size(0, 44),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: const Text('Apply'),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -505,25 +606,15 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     });
   }
 
-  Widget _buildFilterChip({
-    required String label,
-    required String value,
-    required String currentValue,
-    required ValueChanged<String> onSelected,
-  }) {
-    return FilterChip(
-      label: Text(label),
-      selected: currentValue == value,
-      onSelected: (_) => onSelected(value),
-    );
-  }
-
   List<Transaction> _filterTransactions({
     required List<Transaction> transactions,
     required List<Category> categories,
     required DateTime selectedMonth,
   }) {
-    final monthStart = DateTime(selectedMonth.year, selectedMonth.month);
+    final monthStart = DateTime(
+      selectedMonth.year,
+      selectedMonth.month,
+    );
 
     final nextMonthStart = DateTime(
       selectedMonth.year,
@@ -558,8 +649,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
         final type = transaction.type.toLowerCase();
         final currency = transaction.currency.toLowerCase();
 
-        final matchesSearch =
-            note.contains(query) ||
+        final matchesSearch = note.contains(query) ||
             categoryName.contains(query) ||
             type.contains(query) ||
             currency.contains(query);
@@ -568,7 +658,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       }
 
       return true;
-    }).toList()..sort((a, b) => b.date.compareTo(a.date));
+    }).toList()
+      ..sort((a, b) => b.date.compareTo(a.date));
   }
 
   Widget _buildTransactionList({
@@ -627,7 +718,10 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(bottom: 12, top: 2),
+          padding: const EdgeInsets.only(
+            bottom: 12,
+            top: 2,
+          ),
           child: Row(
             children: [
               Container(
@@ -669,7 +763,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
               return TransactionListItem(
                 transaction: transaction,
                 category: category,
-                onTap: () => _openTransactionSheet(transaction: transaction),
+                onTap: () => _openTransactionSheet(
+                  transaction: transaction,
+                ),
                 onDelete: () => _deleteTransaction(transaction, uid),
               );
             },
@@ -688,16 +784,23 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     });
   }
 
-  Future<void> _openTransactionSheet({Transaction? transaction}) async {
+  Future<void> _openTransactionSheet({
+    Transaction? transaction,
+  }) async {
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      builder: (_) => AddEditTransactionSheet(transaction: transaction),
+      builder: (_) => AddEditTransactionSheet(
+        transaction: transaction,
+      ),
     );
   }
 
-  Future<void> _deleteTransaction(Transaction transaction, String uid) async {
+  Future<void> _deleteTransaction(
+    Transaction transaction,
+    String uid,
+  ) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -731,19 +834,25 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     if (confirmed != true || !mounted) return;
 
     try {
-      await ref.read(transactionProvider(uid).notifier).delete(transaction);
+      await ref
+          .read(transactionProvider(uid).notifier)
+          .delete(transaction);
 
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Transaction deleted successfully.')),
+        const SnackBar(
+          content: Text('Transaction deleted successfully.'),
+        ),
       );
     } catch (_) {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Could not delete the transaction. Please try again.'),
+          content: Text(
+            'Could not delete the transaction. Please try again.',
+          ),
         ),
       );
     }
@@ -751,10 +860,243 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
 }
 
 class _TransactionFilters {
-  const _TransactionFilters({required this.type, required this.currency});
+  const _TransactionFilters({
+    required this.type,
+    required this.currency,
+  });
 
   final String type;
   final String currency;
+}
+
+class _FilterOption {
+  const _FilterOption(this.label, this.value);
+
+  final String label;
+  final String value;
+}
+
+class _FilterChoiceGroup extends StatelessWidget {
+  const _FilterChoiceGroup({
+    required this.options,
+    required this.selectedValue,
+    required this.onSelected,
+  });
+
+  final List<_FilterOption> options;
+  final String selectedValue;
+  final ValueChanged<String> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+
+    return Row(
+      children: options.map((option) {
+        final selected = selectedValue == option.value;
+
+        final Color accent = switch (option.value) {
+          'expense' => colors.error,
+          'income' => colors.primary,
+          _ => colors.primary,
+        };
+
+        final String symbol = switch (option.value) {
+          'expense' => '−',
+          'income' => '+',
+          _ => '↔',
+        };
+
+        final String description = switch (option.value) {
+          'expense' => 'Money out',
+          'income' => 'Money in',
+          _ => 'All types',
+        };
+
+        return Expanded(
+          child: Padding(
+            padding: EdgeInsets.only(
+              right: option.value == 'expense' ? 0 : 8,
+            ),
+            child: Material(
+              color: selected
+                  ? colors.surface
+                  : colors.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(11),
+              child: InkWell(
+                onTap: () => onSelected(option.value),
+                borderRadius: BorderRadius.circular(11),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 160),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 5,
+                    vertical: 9,
+                  ),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(11),
+                    border: Border.all(
+                      color: selected
+                          ? accent.withValues(alpha: 0.6)
+                          : colors.outlineVariant.withValues(alpha: 0.55),
+                      width: selected ? 1.4 : 1,
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: selected
+                              ? accent.withValues(alpha: 0.12)
+                              : colors.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          symbol,
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            color: selected
+                                ? accent
+                                : colors.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        option.label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: selected ? accent : colors.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 1),
+                      Text(
+                        description,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: colors.onSurfaceVariant,
+                          fontSize: 9,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+}
+
+class _FilterCurrencyOption extends StatelessWidget {
+  const _FilterCurrencyOption({
+    required this.label,
+    required this.description,
+    required this.symbol,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final String description;
+  final String symbol;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+
+    return Material(
+      color: selected ? colors.surface : Colors.transparent,
+      borderRadius: BorderRadius.circular(11),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(11),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          padding: const EdgeInsets.symmetric(
+            horizontal: 5,
+            vertical: 9,
+          ),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(11),
+            border: Border.all(
+              color: selected
+                  ? colors.primary.withValues(alpha: 0.5)
+                  : Colors.transparent,
+            ),
+            boxShadow: selected
+                ? [
+                    BoxShadow(
+                      color: colors.shadow.withValues(alpha: 0.04),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: selected
+                      ? colors.primaryContainer
+                      : colors.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  symbol,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: selected
+                        ? colors.onPrimaryContainer
+                        : colors.onSurfaceVariant,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: selected ? colors.primary : null,
+                ),
+              ),
+              const SizedBox(height: 1),
+              Text(
+                description,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: colors.onSurfaceVariant,
+                  fontSize: 9,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _LoadingState extends StatelessWidget {
