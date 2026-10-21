@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+﻿import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firebase_auth_mocks/firebase_auth_mocks.dart';
 import 'package:flutter/material.dart';
@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:money_manager/app/app_shell.dart';
 import 'package:money_manager/app/routes.dart';
-import 'package:money_manager/app/theme.dart';
 import 'package:money_manager/app/widgets/responsive_body.dart';
 import 'package:money_manager/data/firebase_providers.dart';
 import 'package:money_manager/features/budgets/presentation/budgets_screen.dart';
@@ -16,11 +15,18 @@ import 'package:money_manager/features/reports/presentation/report_screen.dart';
 import 'package:money_manager/features/settings/presentation/settings_screen.dart';
 import 'package:money_manager/features/transactions/presentation/transaction_list_screen.dart';
 
+import '../helpers/test_fonts.dart';
+import '../helpers/test_theme.dart';
+
 /// Layout tests: Home, Transactions and Budgets must render at phone
 /// (360x800) and web (1280x800) sizes without any overflow or layout
 /// exception, and [ResponsiveBody] must apply the design.md padding
 /// (16 on phones, 24 on wide screens).
 void main() {
+  setUpAll(() async {
+    await loadTestFonts();
+  });
+
   Future<List<Override>> signedInOverrides() async {
     final mockAuth = MockFirebaseAuth();
     final mockFirestore = FakeFirebaseFirestore();
@@ -118,8 +124,8 @@ void main() {
       ProviderScope(
         overrides: overrides,
         child: MaterialApp(
-          theme: AppTheme.light(),
-          darkTheme: AppTheme.dark(),
+          theme: testTheme(),
+          darkTheme: testTheme(brightness: Brightness.dark),
           home: widget,
         ),
       ),
@@ -175,7 +181,7 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
       await tester.pumpWidget(
         MaterialApp(
-          theme: AppTheme.light(),
+          theme: testTheme(),
           home: ResponsiveBody(child: const SizedBox()),
         ),
       );
@@ -222,8 +228,8 @@ void main() {
               ProviderScope(
                 overrides: overrides,
                 child: MaterialApp(
-                  theme: AppTheme.light(),
-                  darkTheme: AppTheme.dark(),
+                  theme: testTheme(),
+                  darkTheme: testTheme(brightness: Brightness.dark),
                   home: AppShell(
                     currentRoute: AppRoutes.home,
                     child: screenEntry.value,
@@ -318,7 +324,7 @@ void main() {
                 firestoreProvider.overrideWithValue(mockFirestore),
               ],
               child: MaterialApp(
-                theme: AppTheme.light(),
+                theme: testTheme(),
                 home: const TransactionsScreen(),
               ),
             ),
@@ -373,7 +379,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: overrides,
-          child: MaterialApp(theme: AppTheme.light(), home: const HomeScreen()),
+          child: MaterialApp(theme: testTheme(), home: const HomeScreen()),
         ),
       );
       await tester.pumpAndSettle();
@@ -389,7 +395,7 @@ void main() {
     });
   });
 
-  // ── STEP 2a: Home at wide sizes renders without overflow (Row + Expanded inside ResponsiveBody with bounded width) ──
+  // â”€â”€ STEP 2a: Home at wide sizes renders without overflow (Row + Expanded inside ResponsiveBody with bounded width) â”€â”€
   group('Home wide layout renders without overflow', () {
     testWidgets('Home at 1280x800 renders without overflow', (tester) async {
       final overrides = await signedInOverrides();
@@ -399,7 +405,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: overrides,
-          child: MaterialApp(theme: AppTheme.light(), home: const HomeScreen()),
+          child: MaterialApp(theme: testTheme(), home: const HomeScreen()),
         ),
       );
       await tester.pump();
@@ -417,7 +423,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: overrides,
-          child: MaterialApp(theme: AppTheme.light(), home: const HomeScreen()),
+          child: MaterialApp(theme: testTheme(), home: const HomeScreen()),
         ),
       );
       await tester.pump();
@@ -428,7 +434,7 @@ void main() {
     });
   });
 
-  // ── STEP 2b: Exactly ONE navigation widget total at each size ──
+  // â”€â”€ STEP 2b: Exactly ONE navigation widget total at each size â”€â”€
   group('Navigation bar count', () {
     testWidgets('At 360x800: NavigationBar only (1 total)', (tester) async {
       final overrides = await signedInOverrides();
@@ -439,7 +445,7 @@ void main() {
         ProviderScope(
           overrides: overrides,
           child: MaterialApp(
-            theme: AppTheme.light(),
+            theme: testTheme(),
             home: AppShell(
               currentRoute: AppRoutes.home,
               child: const HomeScreen(),
@@ -472,7 +478,7 @@ void main() {
         ProviderScope(
           overrides: overrides,
           child: MaterialApp(
-            theme: AppTheme.light(),
+            theme: testTheme(),
             home: AppShell(
               currentRoute: AppRoutes.home,
               child: const HomeScreen(),
@@ -497,7 +503,7 @@ void main() {
     });
   });
 
-  // ── STEP 2c: Tapping destinations shows the right screen ──
+  // â”€â”€ STEP 2c: Tapping destinations shows the right screen â”€â”€
   group('Navigation taps', () {
     for (final entry in <int, String>{
       0: AppRoutes.home,
@@ -517,7 +523,7 @@ void main() {
           ProviderScope(
             overrides: overrides,
             child: MaterialApp(
-              theme: AppTheme.light(),
+              theme: testTheme(),
               home: AppShell(
                 currentRoute: AppRoutes.home,
                 child: const HomeScreen(),
@@ -543,7 +549,7 @@ void main() {
     }
   });
 
-  // ── STEP 3: Charts, Convert, Report render without overflow at phone and web ──
+  // â”€â”€ STEP 3: Charts, Convert, Report render without overflow at phone and web â”€â”€
   final overflowScreens = <String, Widget>{
     'Charts': const ChartsScreen(),
     'Report': const ReportScreen(),
@@ -561,8 +567,8 @@ void main() {
         ProviderScope(
           overrides: overrides,
           child: MaterialApp(
-            theme: AppTheme.light(),
-            darkTheme: AppTheme.dark(),
+            theme: testTheme(),
+            darkTheme: testTheme(brightness: Brightness.dark),
             home: entry.value,
           ),
         ),
@@ -585,8 +591,8 @@ void main() {
         ProviderScope(
           overrides: overrides,
           child: MaterialApp(
-            theme: AppTheme.light(),
-            darkTheme: AppTheme.dark(),
+            theme: testTheme(),
+            darkTheme: testTheme(brightness: Brightness.dark),
             home: entry.value,
           ),
         ),
@@ -599,7 +605,7 @@ void main() {
     });
   }
 
-  // ── STEP 4: Budgets with many items remains scrollable ──
+  // â”€â”€ STEP 4: Budgets with many items remains scrollable â”€â”€
   group('Budgets many items scrollable', () {
     for (final size in [phone, web]) {
       testWidgets(
@@ -685,7 +691,7 @@ void main() {
                 firestoreProvider.overrideWithValue(mockFirestore),
               ],
               child: MaterialApp(
-                theme: AppTheme.light(),
+                theme: testTheme(),
                 home: const BudgetsScreen(),
               ),
             ),

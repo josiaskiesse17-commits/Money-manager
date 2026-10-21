@@ -5,11 +5,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:money_manager/app/routes.dart';
-import 'package:money_manager/app/theme.dart';
 import 'package:money_manager/data/firebase_providers.dart';
 import 'package:money_manager/features/auth/presentation/sign_in_screen.dart';
 import 'package:money_manager/features/settings/presentation/category_dialog.dart';
 import 'package:money_manager/features/settings/presentation/settings_screen.dart';
+
+import '../helpers/test_fonts.dart';
+import '../helpers/test_theme.dart';
 
 const _phoneSize = Size(360, 800);
 const _webSize = Size(1280, 800);
@@ -50,13 +52,16 @@ GoRouter _settingsRouter() => GoRouter(
 );
 
 void main() {
+  setUpAll(() async {
+    await loadTestFonts();
+  });
+
   group('SettingsScreen', () {
     for (final size in [_phoneSize, _webSize]) {
       final sizeLabel = size.width < 600 ? 'phone' : 'web';
-      for (final theme in [ThemeData.light(), ThemeData.dark()]) {
-        final themeLabel = theme.brightness == Brightness.light
-            ? 'light'
-            : 'dark';
+      for (final brightness in [Brightness.light, Brightness.dark]) {
+        final themeLabel = brightness == Brightness.light ? 'light' : 'dark';
+        final theme = testTheme(brightness: brightness);
 
         testWidgets('renders $sizeLabel $themeLabel without overflow', (
           tester,
@@ -70,8 +75,8 @@ void main() {
               overrides: overrides,
               child: MaterialApp.router(
                 theme: theme,
-                darkTheme: AppTheme.dark(),
-                themeMode: theme == ThemeData.light()
+                darkTheme: testTheme(brightness: Brightness.dark),
+                themeMode: brightness == Brightness.light
                     ? ThemeMode.light
                     : ThemeMode.dark,
                 routerConfig: _settingsRouter(),
@@ -100,8 +105,8 @@ void main() {
               overrides: overrides,
               child: MaterialApp.router(
                 theme: theme,
-                darkTheme: AppTheme.dark(),
-                themeMode: theme == ThemeData.light()
+                darkTheme: testTheme(brightness: Brightness.dark),
+                themeMode: brightness == Brightness.light
                     ? ThemeMode.light
                     : ThemeMode.dark,
                 routerConfig: _settingsRouter(),
@@ -110,14 +115,17 @@ void main() {
           );
           await tester.pumpAndSettle();
 
-          // Scroll to reveal the Sign out button at the bottom of the form.
-          await tester.drag(
-            find.byType(SingleChildScrollView),
-            const Offset(0, -400),
-          );
+          // The Sign out button sits at the bottom of the scrolling form.
+          final signOutButton = find.widgetWithText(OutlinedButton, 'Sign out');
+          await tester.ensureVisible(signOutButton);
           await tester.pumpAndSettle();
 
-          await tester.tap(find.text('Sign out'));
+          await tester.tap(signOutButton);
+          await tester.pumpAndSettle();
+
+          // The app asks for confirmation before signing out.
+          expect(find.text('Sign out?'), findsOneWidget);
+          await tester.tap(find.widgetWithText(FilledButton, 'Sign out'));
           await tester.pumpAndSettle();
           await tester.pump(const Duration(milliseconds: 200));
 
@@ -138,8 +146,8 @@ void main() {
               overrides: overrides,
               child: MaterialApp.router(
                 theme: theme,
-                darkTheme: AppTheme.dark(),
-                themeMode: theme == ThemeData.light()
+                darkTheme: testTheme(brightness: Brightness.dark),
+                themeMode: brightness == Brightness.light
                     ? ThemeMode.light
                     : ThemeMode.dark,
                 routerConfig: _settingsRouter(),
@@ -148,7 +156,15 @@ void main() {
           );
           await tester.pumpAndSettle();
 
-          await tester.tap(find.text('Add category').first);
+          // The Add category button sits below the categories list.
+          final addCategoryButton = find.widgetWithText(
+            ElevatedButton,
+            'Add category',
+          );
+          await tester.ensureVisible(addCategoryButton);
+          await tester.pumpAndSettle();
+
+          await tester.tap(addCategoryButton);
           await tester.pumpAndSettle();
 
           expect(find.byType(CategoryDialog), findsOneWidget);

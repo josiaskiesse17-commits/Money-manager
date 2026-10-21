@@ -8,8 +8,6 @@ import 'package:money_manager/app/widgets/app_text_field.dart';
 import 'package:money_manager/app/widgets/category_chips.dart';
 import 'package:money_manager/app/widgets/error_banner.dart';
 import 'package:money_manager/app/widgets/primary_button.dart';
-import 'package:money_manager/app/widgets/secondary_button.dart';
-import 'package:money_manager/app/widgets/section_header.dart';
 import 'package:money_manager/data/models/transaction.dart';
 import 'package:money_manager/features/auth/application/auth_provider.dart';
 import 'package:money_manager/features/categories/application/category_provider.dart';
@@ -262,7 +260,6 @@ class _AddEditTransactionSheetState
     final colors = theme.colorScheme;
 
     final screenWidth = MediaQuery.sizeOf(context).width;
-    final screenHeight = MediaQuery.sizeOf(context).height;
 
     final isCompact = screenWidth < 400;
 
