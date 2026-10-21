@@ -66,10 +66,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final uid = user?.uid ?? '';
 
     if (uid.isEmpty) {
-      return const Scaffold(
-        body: ResponsiveBody(
-          child: SafeArea(child: Center(child: CircularProgressIndicator())),
-        ),
+      return const ResponsiveBody(
+        child: SafeArea(child: Center(child: CircularProgressIndicator())),
       );
     }
 
@@ -79,78 +77,70 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final width = MediaQuery.sizeOf(context).width;
     final isPhone = width < 600;
 
-    return Scaffold(
-      body: ResponsiveBody(
-        maxWidth: width >= 900 ? 1040 : null,
-        padding: EdgeInsets.only(
-          left: isPhone ? 16 : 24,
-          top: 0,
-          right: isPhone ? 16 : 24,
-          bottom: isPhone ? 16 : 24,
-        ),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.only(bottom: 32),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SectionHeader(
-                  title: 'Settings',
-                  subtitle: 'Personalize your Money Manager experience.',
-                ),
-                const SizedBox(height: 20),
+    return ResponsiveBody(
+      maxWidth: width >= 900 ? 1040 : null,
+      padding: EdgeInsets.only(
+        left: isPhone ? 16 : 24,
+        top: 0,
+        right: isPhone ? 16 : 24,
+        bottom: isPhone ? 16 : 24,
+      ),
+      child: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.only(bottom: 32),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SectionHeader(
+                title: 'Settings',
+                subtitle: 'Personalize your Money Manager experience.',
+              ),
+              const SizedBox(height: 20),
+              settingsAsync.when(
+                loading: () =>
+                    const _LoadingCard(message: 'Loading your preferences…'),
+                error: (error, stackTrace) =>
+                    ErrorBanner(message: 'Could not load settings: $error'),
+                data: (setting) {
+                  final effectiveSetting =
+                      setting ??
+                      const Setting(
+                        docId: 'main',
+                        usdToCdfRate: 280050,
+                        theme: 'light',
+                        displayMode: 'combined',
+                        onboarded: false,
+                      );
 
-                settingsAsync.when(
-                  loading: () =>
-                      const _LoadingCard(message: 'Loading your preferences…'),
-                  error: (error, stackTrace) =>
-                      ErrorBanner(message: 'Could not load settings: $error'),
-                  data: (setting) {
-                    final effectiveSetting =
-                        setting ??
-                        const Setting(
-                          docId: 'main',
-                          usdToCdfRate: 280050,
-                          theme: 'light',
-                          displayMode: 'combined',
-                          onboarded: false,
-                        );
+                  _syncRateController(uid, effectiveSetting);
 
-                    _syncRateController(uid, effectiveSetting);
-
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildExchangeRateCard(effectiveSetting, uid),
-                        const SizedBox(height: 20),
-                        _buildThemeCard(effectiveSetting, uid),
-                        const SizedBox(height: 24),
-                      ],
-                    );
-                  },
-                ),
-
-                categoriesAsync.when(
-                  loading: () =>
-                      const _LoadingCard(message: 'Loading categories…'),
-                  error: (error, stackTrace) =>
-                      ErrorBanner(message: 'Could not load categories: $error'),
-                  data: (categories) =>
-                      _buildCategoriesSection(context, categories, uid),
-                ),
-
-                const SizedBox(height: 20),
-
-                _buildAppLockCard(context),
-
-                const SizedBox(height: 24),
-
-                SecondaryButton(
-                  text: 'Sign out',
-                  onPressed: () => _confirmSignOut(context),
-                ),
-              ],
-            ),
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildExchangeRateCard(effectiveSetting, uid),
+                      const SizedBox(height: 20),
+                      _buildThemeCard(effectiveSetting, uid),
+                      const SizedBox(height: 24),
+                    ],
+                  );
+                },
+              ),
+              categoriesAsync.when(
+                loading: () =>
+                    const _LoadingCard(message: 'Loading categories…'),
+                error: (error, stackTrace) =>
+                    ErrorBanner(message: 'Could not load categories: $error'),
+                data: (categories) =>
+                    _buildCategoriesSection(context, categories, uid),
+              ),
+              const SizedBox(height: 20),
+              _buildAppLockCard(context),
+              const SizedBox(height: 24),
+              SecondaryButton(
+                text: 'Sign out',
+                onPressed: () => _confirmSignOut(context),
+              ),
+            ],
           ),
         ),
       ),
@@ -167,7 +157,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             subtitle: 'Set the CDF value of one US dollar.',
           ),
           const SizedBox(height: 16),
-
           TextField(
             controller: _rateController,
             focusNode: _rateFocusNode,
@@ -191,9 +180,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               }
             },
           ),
-
           const SizedBox(height: 16),
-
           PrimaryButton(
             text: 'Save exchange rate',
             busy: _savingRate,
@@ -322,9 +309,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     String uid,
   ) {
     final active = categories.where((category) => !category.archived).toList();
-
     final archived = categories.where((category) => category.archived).toList();
-
     final displayed = _showArchived ? categories : active;
 
     return Column(
@@ -336,9 +321,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               '${active.length} active'
               '${archived.isNotEmpty ? ' · ${archived.length} archived' : ''}',
         ),
-
         const SizedBox(height: 8),
-
         if (categories.isEmpty)
           AppCard(
             child: Padding(
@@ -377,7 +360,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 });
               },
             ),
-
           ...displayed.map(
             (category) => Padding(
               padding: const EdgeInsets.only(bottom: 12),
@@ -385,9 +367,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
           ),
         ],
-
         const SizedBox(height: 12),
-
         PrimaryButton(
           text: 'Add category',
           onPressed: () {
@@ -425,9 +405,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         : Icons.category_outlined,
                   ),
                 ),
-
                 const SizedBox(width: 12),
-
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -443,7 +421,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         category.type == 'income' ? 'Income' : 'Expense',
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
-
                       if (category.archived)
                         Padding(
                           padding: const EdgeInsets.only(top: 4),
@@ -461,9 +438,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
               ],
             ),
-
             const SizedBox(height: 12),
-
             Row(
               children: [
                 Expanded(
@@ -478,9 +453,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     },
                   ),
                 ),
-
                 const SizedBox(width: 8),
-
                 Expanded(
                   child: OutlinedButton.icon(
                     icon: Icon(
@@ -536,9 +509,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             title: 'App lock',
             subtitle: 'Protect your app with a four-digit PIN.',
           ),
-
           const SizedBox(height: 8),
-
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
             title: const Text('Enable app lock'),
@@ -554,18 +525,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               }
             },
           ),
-
           if (lockEnabled) ...[
             const SizedBox(height: 8),
-
             OutlinedButton.icon(
               icon: const Icon(Icons.password),
               label: const Text('Change PIN'),
               onPressed: () => context.go(AppRoutes.pinSetup),
             ),
-
             const SizedBox(height: 8),
-
             TextButton(
               onPressed: () => _confirmForgotPin(context),
               child: const Text(
@@ -575,7 +542,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
           ] else ...[
             const SizedBox(height: 8),
-
             PrimaryButton(
               text: 'Set up PIN',
               onPressed: () => context.go(AppRoutes.pinSetup),
@@ -617,8 +583,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
       ref.read(appLockRefreshProvider.notifier).state++;
 
-      ScaffoldMessenger.of(this.context)
-          .showSnackBar(const SnackBar(content: Text('App lock disabled.')));
+      ScaffoldMessenger.of(this.context).showSnackBar(
+        const SnackBar(content: Text('App lock disabled.')),
+      );
     } catch (_) {
       if (!mounted) return;
 

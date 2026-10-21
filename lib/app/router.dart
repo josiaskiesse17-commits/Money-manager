@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:money_manager/app/app_shell.dart';
 import 'package:money_manager/app/auth_gate.dart';
 import 'package:money_manager/app/routes.dart';
 import 'package:money_manager/features/auth/application/auth_provider.dart';
@@ -24,8 +25,7 @@ final _openRoutes = <String>{
 /// App routes — go_router configuration using named constants from [AppRoutes].
 ///
 /// The [redirect] guard prevents signed-out and unverified users from
-/// reaching protected routes, so email verification cannot be bypassed by
-/// navigating directly, restarting the app, or using the router.
+/// reaching protected routes.
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: AppRoutes.signIn,
@@ -34,16 +34,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isOpen = _openRoutes.contains(state.matchedLocation);
 
       if (user == null) {
-        // Signed out: only sign-in / sign-up / reset-password are open.
         return isOpen ? null : AppRoutes.signIn;
       }
 
       if (!user.emailVerified) {
-        // Signed in but unverified: only open routes are allowed.
         return isOpen ? null : AppRoutes.signIn;
       }
 
-      // Verified user: proceed to the requested route.
       return null;
     },
     routes: [
@@ -55,22 +52,46 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: AppRoutes.transactions,
-        builder: (_, _) => const TransactionsScreen(),
+        builder: (_, _) => AppShell(
+          currentRoute: AppRoutes.transactions,
+          child: const TransactionsScreen(),
+        ),
       ),
       GoRoute(
         path: AppRoutes.convert,
         builder: (_, _) => const ConvertScreen(),
       ),
-      GoRoute(path: AppRoutes.home, builder: (_, _) => const HomeScreen()),
+      GoRoute(
+        path: AppRoutes.home,
+        builder: (_, _) => AppShell(
+          currentRoute: AppRoutes.home,
+          child: const HomeScreen(),
+        ),
+      ),
       GoRoute(
         path: AppRoutes.budgets,
-        builder: (_, _) => const BudgetsScreen(),
+        builder: (_, _) => AppShell(
+          currentRoute: AppRoutes.budgets,
+          child: const BudgetsScreen(),
+        ),
       ),
-      GoRoute(path: AppRoutes.charts, builder: (_, _) => const ChartsScreen()),
-      GoRoute(path: AppRoutes.reports, builder: (_, _) => const ReportScreen()),
+      GoRoute(
+        path: AppRoutes.charts,
+        builder: (_, _) => AppShell(
+          currentRoute: AppRoutes.charts,
+          child: const ChartsScreen(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.reports,
+        builder: (_, _) => const ReportScreen(),
+      ),
       GoRoute(
         path: AppRoutes.settings,
-        builder: (_, _) => const SettingsScreen(),
+        builder: (_, _) => AppShell(
+          currentRoute: AppRoutes.settings,
+          child: const SettingsScreen(),
+        ),
       ),
       GoRoute(
         path: AppRoutes.pinSetup,
