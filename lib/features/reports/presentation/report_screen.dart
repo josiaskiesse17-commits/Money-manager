@@ -32,18 +32,20 @@ class ReportScreen extends ConsumerWidget {
     return AppShell(
       currentRoute: AppRoutes.reports,
       child: ResponsiveBody(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SectionHeader(
-              title: 'Report',
-              subtitle: 'Generate a PDF report for a period.',
-            ),
-            const SizedBox(height: 16),
-            _RangeSelector(),
-            const SizedBox(height: 24),
-            _ReportContent(selectedMonth: selectedMonth),
-          ],
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SectionHeader(
+                title: 'Report',
+                subtitle: 'Generate a PDF report for a period.',
+              ),
+              const SizedBox(height: 16),
+              _RangeSelector(),
+              const SizedBox(height: 24),
+              _ReportContent(selectedMonth: selectedMonth),
+            ],
+          ),
         ),
       ),
     );

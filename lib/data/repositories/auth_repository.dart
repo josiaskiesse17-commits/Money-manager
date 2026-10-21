@@ -24,6 +24,32 @@ class AuthRepository {
     await _auth.sendPasswordResetEmail(email: email);
   }
 
+  /// Sends an email verification message to the currently signed-in user.
+  /// The user must click the link in their inbox; this method only sends it.
+  Future<void> sendEmailVerification() async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw FirebaseAuthException(
+        code: 'no-current-user',
+        message: 'No user is currently signed in.',
+      );
+    }
+    await user.sendEmailVerification();
+  }
+
+  /// Reloads the current user from Firebase so [emailVerified] reflects the
+  /// latest server state (e.g. after the user clicks the verification link).
+  Future<void> reloadUser() async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw FirebaseAuthException(
+        code: 'no-current-user',
+        message: 'No user is currently signed in.',
+      );
+    }
+    await user.reload();
+  }
+
   Future<void> signOut() async {
     await _auth.signOut();
   }

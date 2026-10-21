@@ -2,12 +2,10 @@ import 'package:flutter/material.dart';
 
 /// Money Manager design system theme.
 ///
-/// Defines light and dark [ColorScheme]s plus a [MoneyColors] ThemeExtension
-/// for semantic colors (income, expense, warning, accent). Component themes
-/// (input, button, card, chip, snackbar) are set here so screens never use
-/// hard-coded colors or sizes.
+/// Defines light and dark ColorSchemes, semantic colors, and shared
+/// component themes. Buttons use finite minimum widths to prevent
+/// layout exceptions inside Rows and other unconstrained layouts.
 
-/// Light theme colors.
 const _lightColorScheme = ColorScheme(
   brightness: Brightness.light,
   primary: Color(0xFF0F5FA8),
@@ -30,7 +28,6 @@ const _lightColorScheme = ColorScheme(
   surfaceTint: Color(0xFF0F5FA8),
 );
 
-/// Dark theme colors.
 const _darkColorScheme = ColorScheme(
   brightness: Brightness.dark,
   primary: Color(0xFF5AA2E6),
@@ -53,7 +50,7 @@ const _darkColorScheme = ColorScheme(
   surfaceTint: Color(0xFF5AA2E6),
 );
 
-/// Semantic color extension used across the app.
+/// Semantic colors used throughout the application.
 class MoneyColors extends ThemeExtension<MoneyColors> {
   final Color income;
   final Color expense;
@@ -85,6 +82,7 @@ class MoneyColors extends ThemeExtension<MoneyColors> {
   @override
   MoneyColors lerp(ThemeExtension<MoneyColors>? other, double t) {
     if (other is! MoneyColors) return this;
+
     return MoneyColors(
       income: Color.lerp(income, other.income, t) ?? income,
       expense: Color.lerp(expense, other.expense, t) ?? expense,
@@ -108,14 +106,13 @@ const _darkMoneyColors = MoneyColors(
   accent: Color(0xFFF0BE3A),
 );
 
-/// AppTheme builds full [ThemeData] for light and dark.
 class AppTheme {
   static ThemeData light() {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
       colorScheme: _lightColorScheme,
-      extensions: [_lightMoneyColors],
+      extensions: const [_lightMoneyColors],
       textTheme: _textTheme,
       inputDecorationTheme: _inputDecorationTheme,
       elevatedButtonTheme: _elevatedButtonTheme,
@@ -128,7 +125,7 @@ class AppTheme {
           borderRadius: BorderRadius.circular(16),
           side: const BorderSide(color: Color(0xFFD5DBE4)),
         ),
-        margin: const EdgeInsets.all(0),
+        margin: EdgeInsets.zero,
       ),
       chipTheme: _chipTheme,
       snackBarTheme: _snackBarTheme,
@@ -141,7 +138,7 @@ class AppTheme {
       useMaterial3: true,
       brightness: Brightness.dark,
       colorScheme: _darkColorScheme,
-      extensions: [_darkMoneyColors],
+      extensions: const [_darkMoneyColors],
       textTheme: _textTheme,
       inputDecorationTheme: _inputDecorationTheme,
       elevatedButtonTheme: _elevatedButtonTheme,
@@ -152,9 +149,9 @@ class AppTheme {
         shadowColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: Color(0xFFD5DBE4)),
+          side: const BorderSide(color: Color(0xFF2B3644)),
         ),
-        margin: const EdgeInsets.all(0),
+        margin: EdgeInsets.zero,
       ),
       chipTheme: _chipTheme,
       snackBarTheme: _snackBarTheme,
@@ -163,27 +160,26 @@ class AppTheme {
   }
 }
 
-/// Shared text scale (Material 3). Amounts use tabular figures in [AmountText].
-final _textTheme = TextTheme(
-  displayLarge: const TextStyle(
+final _textTheme = const TextTheme(
+  displayLarge: TextStyle(
     fontSize: 40,
     fontWeight: FontWeight.w700,
     letterSpacing: -0.5,
   ),
-  displayMedium: const TextStyle(
+  displayMedium: TextStyle(
     fontSize: 36,
     fontWeight: FontWeight.w700,
     letterSpacing: -0.5,
   ),
-  headlineLarge: const TextStyle(fontSize: 28, fontWeight: FontWeight.w700),
-  headlineMedium: const TextStyle(fontSize: 24, fontWeight: FontWeight.w600),
-  titleLarge: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
-  titleMedium: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-  bodyLarge: const TextStyle(fontSize: 16, fontWeight: FontWeight.w400),
-  bodyMedium: const TextStyle(fontSize: 14, fontWeight: FontWeight.w400),
-  labelLarge: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-  labelMedium: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
-  bodySmall: const TextStyle(fontSize: 12, fontWeight: FontWeight.w400),
+  headlineLarge: TextStyle(fontSize: 28, fontWeight: FontWeight.w700),
+  headlineMedium: TextStyle(fontSize: 24, fontWeight: FontWeight.w600),
+  titleLarge: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+  titleMedium: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+  bodyLarge: TextStyle(fontSize: 16, fontWeight: FontWeight.w400),
+  bodyMedium: TextStyle(fontSize: 14, fontWeight: FontWeight.w400),
+  labelLarge: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+  labelMedium: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+  bodySmall: TextStyle(fontSize: 12, fontWeight: FontWeight.w400),
 );
 
 final _inputDecorationTheme = InputDecorationTheme(
@@ -220,10 +216,14 @@ final _inputDecorationTheme = InputDecorationTheme(
   ),
 );
 
+/// Buttons have finite minimum widths.
+///
+/// Use SizedBox(width: double.infinity, child: ...) around a button
+/// only when that specific button should fill its available width.
 final _elevatedButtonTheme = ElevatedButtonThemeData(
   style: ElevatedButton.styleFrom(
-    minimumSize: const Size(double.infinity, 52),
-    padding: const EdgeInsets.symmetric(vertical: 16),
+    minimumSize: const Size(64, 52),
+    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     elevation: 0,
     shadowColor: Colors.transparent,
@@ -232,8 +232,8 @@ final _elevatedButtonTheme = ElevatedButtonThemeData(
 
 final _outlinedButtonTheme = OutlinedButtonThemeData(
   style: OutlinedButton.styleFrom(
-    minimumSize: const Size(double.infinity, 52),
-    padding: const EdgeInsets.symmetric(vertical: 16),
+    minimumSize: const Size(64, 44),
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
     side: const BorderSide(color: Color(0xFFD5DBE4)),
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
   ),

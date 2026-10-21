@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import 'package:money_manager/app/routes.dart';
 import 'package:money_manager/app/widgets/app_card.dart';
-import 'package:money_manager/app/widgets/app_text_field.dart';
 import 'package:money_manager/app/widgets/error_banner.dart';
 import 'package:money_manager/app/widgets/primary_button.dart';
 import 'package:money_manager/app/widgets/responsive_body.dart';
@@ -15,193 +16,510 @@ import 'package:money_manager/features/auth/application/auth_provider.dart';
 import 'package:money_manager/features/categories/application/category_provider.dart';
 import 'package:money_manager/features/settings/application/app_lock_provider.dart';
 import 'package:money_manager/features/settings/application/settings_provider.dart';
+import 'package:money_manager/features/settings/presentation/category_dialog.dart';
 
-/// Settings screen: exchange rate, categories, theme, app lock, sign out.
-class SettingsScreen extends ConsumerWidget {
+class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+  final TextEditingController _rateController = TextEditingController();
+  final FocusNode _rateFocusNode = FocusNode();
+
+  String? _controllerUid;
+  String? _rateError;
+
+  bool _savingRate = false;
+  bool _showArchived = false;
+
+  @override
+  void dispose() {
+    _rateController.dispose();
+    _rateFocusNode.dispose();
+    super.dispose();
+  }
+
+  void _syncRateController(String uid, Setting setting) {
+    final formattedRate = (setting.usdToCdfRate / 100).toStringAsFixed(2);
+
+    if (_controllerUid != uid) {
+      _controllerUid = uid;
+      _rateController.text = formattedRate;
+      _rateError = null;
+      return;
+    }
+
+    if (!_rateFocusNode.hasFocus &&
+        !_savingRate &&
+        _rateError == null &&
+        _rateController.text != formattedRate) {
+      _rateController.text = formattedRate;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final user = ref.watch(authProvider);
     final uid = user?.uid ?? '';
 
+    if (uid.isEmpty) {
+      return const ResponsiveBody(
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final settingsAsync = ref.watch(settingsProvider(uid));
+    final categoriesAsync = ref.watch(categoryProvider(uid));
+
     return ResponsiveBody(
       child: SingleChildScrollView(
+        padding: const EdgeInsets.only(bottom: 32),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SectionHeader(
               title: 'Settings',
-              subtitle: 'Manage your Money Manager preferences.',
+              subtitle: 'Personalize your Money Manager experience.',
             ),
-            const SizedBox(height: 16),
-            _SettingsContent(uid: uid),
+            const SizedBox(height: 20),
+
+            settingsAsync.when(
+              loading: () =>
+                  const _LoadingCard(message: 'Loading your preferences…'),
+              error: (error, stackTrace) =>
+                  ErrorBanner(message: 'Could not load settings: $error'),
+              data: (setting) {
+                final effectiveSetting =
+                    setting ??
+                    const Setting(
+                      docId: 'main',
+                      usdToCdfRate: 280050,
+                      theme: 'light',
+                      displayMode: 'combined',
+                      onboarded: false,
+                    );
+
+                _syncRateController(uid, effectiveSetting);
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildExchangeRateCard(effectiveSetting, uid),
+                    const SizedBox(height: 20),
+                    _buildThemeCard(effectiveSetting, uid),
+                    const SizedBox(height: 24),
+                  ],
+                );
+              },
+            ),
+
+            categoriesAsync.when(
+              loading: () => const _LoadingCard(message: 'Loading categories…'),
+              error: (error, stackTrace) =>
+                  ErrorBanner(message: 'Could not load categories: $error'),
+              data: (categories) =>
+                  _buildCategoriesSection(context, categories, uid),
+            ),
+
+            const SizedBox(height: 20),
+
+            _buildAppLockCard(context),
+
+            const SizedBox(height: 24),
+
+            SizedBox(
+              width: double.infinity,
+              child: SecondaryButton(
+                text: 'Sign out',
+                onPressed: () => _confirmSignOut(context),
+              ),
+            ),
           ],
         ),
       ),
     );
   }
-}
 
-class _SettingsContent extends ConsumerWidget {
-  final String uid;
-
-  const _SettingsContent({required this.uid});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final settingAsync = ref.watch(settingsProvider(uid));
-    final categoriesAsync = ref.watch(categoryProvider(uid));
-
-    return settingAsync.when(
-      data: (setting) => categoriesAsync.when(
-        data: (categories) {
-          final effectiveSetting =
-              setting ??
-              const Setting(
-                docId: 'main',
-                usdToCdfRate: 280050,
-                theme: 'light',
-                displayMode: 'combined',
-                onboarded: false,
-              );
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildExchangeRateCard(effectiveSetting, ref),
-              const SizedBox(height: 16),
-              _buildCategoriesSection(categories, ref),
-              const SizedBox(height: 24),
-              _buildThemeCard(effectiveSetting, ref),
-              const SizedBox(height: 16),
-              _buildAppLockCard(context, ref),
-              const SizedBox(height: 24),
-              SecondaryButton(
-                text: 'Sign out',
-                onPressed: () => context.go(AppRoutes.signIn),
-              ),
-            ],
-          );
-        },
-        loading: () => const SizedBox.shrink(),
-        error: (error, _) => ErrorBanner(message: error.toString()),
-      ),
-      loading: () => const SizedBox.shrink(),
-      error: (error, _) => ErrorBanner(message: error.toString()),
-    );
-  }
-
-  Widget _buildExchangeRateCard(Setting setting, WidgetRef ref) {
-    final rateCtrl = TextEditingController(
-      text: (setting.usdToCdfRate / 100).toStringAsFixed(2),
-    );
-
+  Widget _buildExchangeRateCard(Setting setting, String uid) {
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SectionHeader(
             title: 'Exchange rate',
-            subtitle: 'CDF per 1 USD',
-          ),
-          const SizedBox(height: 8),
-          AppTextField(
-            controller: rateCtrl,
-            label: 'Rate (CDF per USD)',
-            keyboardType: TextInputType.number,
-            onChanged: (v) {},
+            subtitle: 'Set the CDF value of one US dollar.',
           ),
           const SizedBox(height: 16),
-          PrimaryButton(
-            text: 'Save rate',
-            onPressed: () {
-              final text = rateCtrl.text
-                  .replaceAll(',', '')
-                  .replaceAll('.', '');
-              try {
-                final rateScaled = int.parse(text) * 100;
-                ref
-                    .read(settingsProvider(uid).notifier)
-                    .save(setting.copyWith(usdToCdfRate: rateScaled));
-              } catch (e) {
-                // Error handled by settings provider
+
+          TextField(
+            controller: _rateController,
+            focusNode: _rateFocusNode,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+            ],
+            decoration: InputDecoration(
+              labelText: 'CDF per 1 USD',
+              prefixIcon: const Icon(Icons.currency_exchange),
+              helperText: 'Example: 2800.50',
+              suffixText: 'CDF',
+              errorText: _rateError,
+              border: const OutlineInputBorder(),
+            ),
+            onChanged: (_) {
+              if (_rateError != null) {
+                setState(() {
+                  _rateError = null;
+                });
               }
             },
+          ),
+
+          const SizedBox(height: 16),
+
+          SizedBox(
+            width: double.infinity,
+            child: PrimaryButton(
+              text: 'Save exchange rate',
+              busy: _savingRate,
+              onPressed: _savingRate
+                  ? null
+                  : () => _saveExchangeRate(setting, uid),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildCategoriesSection(List<Category> categories, WidgetRef ref) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SectionHeader(
-          title: 'Categories',
-          subtitle: 'Add, edit, or archive categories.',
-        ),
-        const SizedBox(height: 8),
-        ...categories.where((c) => !c.archived).map((cat) {
-          return AppCard(
-            child: ListTile(
-              leading: CircleAvatar(child: Text(cat.name[0])),
-              title: Text(cat.name),
-              subtitle: Text(cat.type == 'income' ? 'Income' : 'Expense'),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SecondaryButton(text: 'Edit', onPressed: () {}),
-                  const SizedBox(width: 8),
-                  SecondaryButton(
-                    text: cat.archived ? 'Restore' : 'Archive',
-                    onPressed: () => ref
-                        .read(categoryProvider(uid).notifier)
-                        .archive(cat.id, !cat.archived),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }),
-        const SizedBox(height: 16),
-        PrimaryButton(text: 'Add category', onPressed: () {}),
-      ],
-    );
+  Future<void> _saveExchangeRate(Setting setting, String uid) async {
+    if (_savingRate) return;
+
+    final normalized = _rateController.text
+        .trim()
+        .replaceAll(',', '')
+        .replaceAll(' ', '');
+
+    final rate = double.tryParse(normalized);
+
+    if (rate == null || !rate.isFinite || rate <= 0 || rate > 100000000) {
+      setState(() {
+        _rateError = 'Enter a valid exchange rate greater than zero.';
+      });
+      return;
+    }
+
+    final scaledRate = (rate * 100).round();
+
+    setState(() {
+      _savingRate = true;
+      _rateError = null;
+    });
+
+    try {
+      await ref
+          .read(settingsProvider(uid).notifier)
+          .save(setting.copyWith(usdToCdfRate: scaledRate));
+
+      if (!mounted) return;
+
+      _rateController.text = (scaledRate / 100).toStringAsFixed(2);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Exchange rate saved successfully.')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+
+      setState(() {
+        _rateError = 'Could not save the exchange rate. Please try again.';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _savingRate = false;
+        });
+      }
+    }
   }
 
-  Widget _buildThemeCard(Setting setting, WidgetRef ref) {
+  Widget _buildThemeCard(Setting setting, String uid) {
+    const supportedThemes = {'light', 'dark', 'system'};
+
+    final theme = supportedThemes.contains(setting.theme)
+        ? setting.theme
+        : 'system';
+
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SectionHeader(
-            title: 'Theme',
-            subtitle: 'Choose light, dark, or system.',
+            title: 'Appearance',
+            subtitle: 'Choose your preferred app theme.',
           ),
-          const SizedBox(height: 8),
-          SegmentedButton<String>(
-            segments: const [
-              ButtonSegment(value: 'light', label: Text('Light')),
-              ButtonSegment(value: 'dark', label: Text('Dark')),
-              ButtonSegment(value: 'system', label: Text('System')),
-            ],
-            selected: {setting.theme},
-            onSelectionChanged: (selection) {
-              ref
-                  .read(settingsProvider(uid).notifier)
-                  .save(setting.copyWith(theme: selection.first));
-            },
+          const SizedBox(height: 12),
+
+          SizedBox(
+            width: double.infinity,
+            child: SegmentedButton<String>(
+              showSelectedIcon: false,
+              segments: const [
+                ButtonSegment<String>(
+                  value: 'light',
+                  icon: Icon(Icons.light_mode_outlined),
+                  label: Text('Light'),
+                ),
+                ButtonSegment<String>(
+                  value: 'dark',
+                  icon: Icon(Icons.dark_mode_outlined),
+                  label: Text('Dark'),
+                ),
+                ButtonSegment<String>(
+                  value: 'system',
+                  icon: Icon(Icons.settings_suggest_outlined),
+                  label: Text('System'),
+                ),
+              ],
+              selected: {theme},
+              onSelectionChanged: (selection) {
+                _saveTheme(setting, uid, selection.first);
+              },
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildAppLockCard(BuildContext context, WidgetRef ref) {
-    final lockState = ref.watch(appLockProvider);
-    final lockNotifier = ref.read(appLockProvider.notifier);
+  Future<void> _saveTheme(Setting setting, String uid, String theme) async {
+    try {
+      await ref
+          .read(settingsProvider(uid).notifier)
+          .save(setting.copyWith(theme: theme));
+    } catch (_) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not save your theme preference.')),
+      );
+    }
+  }
+
+  Widget _buildCategoriesSection(
+    BuildContext context,
+    List<Category> categories,
+    String uid,
+  ) {
+    final active = categories.where((category) => !category.archived).toList();
+
+    final archived = categories.where((category) => category.archived).toList();
+
+    final displayed = _showArchived ? categories : active;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SectionHeader(
+          title: 'Categories',
+          subtitle:
+              '${active.length} active'
+              '${archived.isNotEmpty ? ' · ${archived.length} archived' : ''}',
+        ),
+
+        const SizedBox(height: 8),
+
+        if (categories.isEmpty)
+          AppCard(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.category_outlined,
+                    size: 40,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'No categories yet',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Add categories to organize your income and expenses.',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ],
+              ),
+            ),
+          )
+        else ...[
+          if (archived.isNotEmpty)
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Show archived categories'),
+              value: _showArchived,
+              onChanged: (value) {
+                setState(() {
+                  _showArchived = value;
+                });
+              },
+            ),
+
+          ...displayed.map(
+            (category) => _buildCategoryCard(context, category, uid),
+          ),
+        ],
+
+        const SizedBox(height: 12),
+
+        SizedBox(
+          width: double.infinity,
+          child: PrimaryButton(
+            text: 'Add category',
+            onPressed: () {
+              showDialog<void>(
+                context: context,
+                builder: (_) => const CategoryDialog(),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCategoryCard(
+    BuildContext context,
+    Category category,
+    String uid,
+  ) {
+    final color = Color(category.color);
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return AppCard(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: color.withValues(alpha: 0.13),
+                  foregroundColor: color,
+                  child: Icon(
+                    category.type == 'income'
+                        ? Icons.trending_up
+                        : Icons.category_outlined,
+                  ),
+                ),
+
+                const SizedBox(width: 12),
+
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        category.name.isEmpty
+                            ? 'Unnamed category'
+                            : category.name,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        category.type == 'income' ? 'Income' : 'Expense',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+
+                      if (category.archived)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            'Archived',
+                            style: TextStyle(
+                              color: colorScheme.error,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 12),
+
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    icon: const Icon(Icons.edit_outlined, size: 18),
+                    label: const Text('Edit'),
+                    onPressed: () {
+                      showDialog<void>(
+                        context: context,
+                        builder: (_) => CategoryDialog(category: category),
+                      );
+                    },
+                  ),
+                ),
+
+                const SizedBox(width: 8),
+
+                Expanded(
+                  child: OutlinedButton.icon(
+                    icon: Icon(
+                      category.archived
+                          ? Icons.unarchive_outlined
+                          : Icons.archive_outlined,
+                      size: 18,
+                    ),
+                    label: Text(category.archived ? 'Restore' : 'Archive'),
+                    onPressed: () => _toggleArchive(category, uid),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _toggleArchive(Category category, String uid) async {
+    try {
+      await ref
+          .read(categoryProvider(uid).notifier)
+          .archive(category.id, !category.archived);
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            category.archived ? 'Category restored.' : 'Category archived.',
+          ),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not update the category.')),
+      );
+    }
+  }
+
+  Widget _buildAppLockCard(BuildContext context) {
+    final lockEnabled = ref.watch(appLockProvider);
 
     return AppCard(
       child: Column(
@@ -209,43 +527,212 @@ class _SettingsContent extends ConsumerWidget {
         children: [
           const SectionHeader(
             title: 'App lock',
-            subtitle: 'Protect your data with a PIN.',
+            subtitle: 'Protect your app with a four-digit PIN.',
           ),
+
           const SizedBox(height: 8),
+
           SwitchListTile(
+            contentPadding: EdgeInsets.zero,
             title: const Text('Enable app lock'),
-            value: lockState,
-            onChanged: (v) async {
-              if (v) {
+            subtitle: Text(
+              lockEnabled ? 'A PIN is configured.' : 'No PIN is configured.',
+            ),
+            value: lockEnabled,
+            onChanged: (enabled) {
+              if (enabled) {
                 context.go(AppRoutes.pinSetup);
               } else {
-                await lockNotifier.removePin();
+                _confirmRemovePin(context);
               }
             },
           ),
-          if (lockState) ...[
-            SecondaryButton(
-              text: 'Change PIN',
-              onPressed: () => context.go(AppRoutes.pinSetup),
-            ),
+
+          if (lockEnabled) ...[
             const SizedBox(height: 8),
-            SecondaryButton(
-              text: 'Forgot PIN',
-              onPressed: () async {
-                await lockNotifier.removePin();
-                await ref.read(authProvider.notifier).signOut();
-                if (context.mounted) {
-                  context.go(AppRoutes.signIn);
-                }
-              },
+
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.password),
+                label: const Text('Change PIN'),
+                onPressed: () => context.go(AppRoutes.pinSetup),
+              ),
+            ),
+
+            const SizedBox(height: 8),
+
+            SizedBox(
+              width: double.infinity,
+              child: TextButton(
+                onPressed: () => _confirmForgotPin(context),
+                child: const Text(
+                  'Forgot PIN? Sign out and reset app lock',
+                  textAlign: TextAlign.center,
+                ),
+              ),
             ),
           ] else ...[
-            PrimaryButton(
-              text: 'Set up PIN',
-              onPressed: () => context.go(AppRoutes.pinSetup),
+            const SizedBox(height: 8),
+
+            SizedBox(
+              width: double.infinity,
+              child: PrimaryButton(
+                text: 'Set up PIN',
+                onPressed: () => context.go(AppRoutes.pinSetup),
+              ),
             ),
           ],
         ],
+      ),
+    );
+  }
+
+  Future<void> _confirmRemovePin(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Disable app lock?'),
+        content: const Text(
+          'Your saved PIN will be removed from this device. '
+          'You can set up a new PIN later.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Disable lock'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    try {
+      await ref.read(appLockProvider.notifier).removePin();
+
+      if (!mounted) return;
+
+      ref.read(appLockRefreshProvider.notifier).state++;
+
+      ScaffoldMessenger.of(this.context)
+          .showSnackBar(const SnackBar(content: Text('App lock disabled.')));
+    } catch (_) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(this.context).showSnackBar(
+        const SnackBar(content: Text('Could not disable app lock.')),
+      );
+    }
+  }
+
+  Future<void> _confirmForgotPin(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Reset your app lock?'),
+        content: const Text(
+          'You will be signed out and your saved PIN will be removed '
+          'from this device. You can sign in again and create a new PIN.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Sign out and reset'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    try {
+      await ref.read(appLockProvider.notifier).removePin();
+
+      if (!mounted) return;
+
+      await ref.read(authProvider.notifier).signOut();
+
+      if (!mounted) return;
+
+      ref.read(appLockRefreshProvider.notifier).state++;
+
+      this.context.go(AppRoutes.signIn);
+    } catch (_) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(this.context).showSnackBar(
+        const SnackBar(content: Text('Could not reset the app lock.')),
+      );
+    }
+  }
+
+  Future<void> _confirmSignOut(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Sign out?'),
+        content: const Text('Are you sure you want to sign out?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Sign out'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    try {
+      await ref.read(authProvider.notifier).signOut();
+
+      if (!mounted) return;
+
+      this.context.go(AppRoutes.signIn);
+    } catch (_) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(this.context).showSnackBar(
+        const SnackBar(content: Text('Could not sign out. Please try again.')),
+      );
+    }
+  }
+}
+
+class _LoadingCard extends StatelessWidget {
+  const _LoadingCard({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Row(
+          children: [
+            const SizedBox(
+              width: 22,
+              height: 22,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            const SizedBox(width: 14),
+            Expanded(child: Text(message)),
+          ],
+        ),
       ),
     );
   }

@@ -1,22 +1,11 @@
 import 'package:flutter/material.dart';
 
-/// Responsive screen wrapper used on EVERY screen.
+/// Shared responsive layout used by the app's feature screens.
 ///
-/// Phone (under 600 wide): full width, 16 padding.
-/// Tablet/web (600+): content centered, max width 720, 24 padding.
-/// Pass [maxWidth] to override (e.g. 440 for auth/setup forms,
-/// 1040 for the wide two-column Home).
-///
-/// Width is bounded to the screen size so [Expanded]/[Flexible] children
-/// inside [Row] work correctly. Height is NOT bounded — screens must size
-/// themselves vertically (e.g. [SingleChildScrollView] for scrollable
-/// content). Wraps content in [Material] so material widgets (dropdowns,
-/// etc.) have a Material ancestor.
+/// Keeps content at a readable width on larger screens while allowing
+/// mobile screens to use the available width. The background remains
+/// transparent so the parent Scaffold and app theme control its color.
 class ResponsiveBody extends StatelessWidget {
-  final Widget child;
-  final double? maxWidth;
-  final EdgeInsetsGeometry? padding;
-
   const ResponsiveBody({
     super.key,
     required this.child,
@@ -24,20 +13,32 @@ class ResponsiveBody extends StatelessWidget {
     this.padding,
   });
 
+  final Widget child;
+  final double? maxWidth;
+  final EdgeInsetsGeometry? padding;
+
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
-    final isPhone = width < 600;
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final isPhone = screenWidth < 600;
 
-    final boundedMaxWidth = maxWidth ?? (isPhone ? width : 720.0);
+    final contentMaxWidth = maxWidth ?? (isPhone ? screenWidth : 720.0);
+    final contentPadding = padding ?? EdgeInsets.all(isPhone ? 16.0 : 24.0);
 
     return Material(
       color: Colors.transparent,
       child: Padding(
-        padding: padding ?? EdgeInsets.all(isPhone ? 16.0 : 24.0),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: boundedMaxWidth),
-          child: child,
+        padding: contentPadding,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: contentMaxWidth,
+            ),
+            child: SizedBox(
+              width: double.infinity,
+              child: child,
+            ),
+          ),
         ),
       ),
     );

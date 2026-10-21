@@ -5,11 +5,15 @@ import 'package:money_manager/app/routes.dart';
 import 'package:money_manager/app/widgets/error_banner.dart';
 import 'package:money_manager/features/auth/application/auth_provider.dart';
 import 'package:money_manager/features/auth/presentation/sign_in_screen.dart';
+import 'package:money_manager/features/auth/presentation/verify_email_screen.dart';
 import 'package:money_manager/features/home/presentation/home_screen.dart';
 import 'package:money_manager/features/settings/application/settings_provider.dart';
 import 'package:money_manager/features/onboarding/presentation/first_run_setup.dart';
 
-/// Gate above everything: loading -> sign-in -> first-run setup -> Home.
+/// Gate above everything: loading -> sign-in -> verify email -> first-run setup -> Home.
+///
+/// A signed-in user whose email is not verified is kept on the verification
+/// screen and is never allowed into the protected application.
 class AuthGate extends ConsumerWidget {
   const AuthGate({super.key});
 
@@ -17,34 +21,41 @@ class AuthGate extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authProvider);
 
-    return user == null
-        ? const SignInScreen()
-        : Consumer(
-            builder: (_, ref, _) {
-              final settings = ref.watch(settingsProvider(user.uid));
-              return settings.when(
-                data: (setting) {
-                  if (setting == null || !setting.onboarded) {
-                    return const FirstRunSetup();
-                  }
-                  return AppShell(
-                    currentRoute: AppRoutes.home,
-                    child: const HomeScreen(),
-                  );
-                },
-                loading: () =>
-                    const Scaffold(body: Center(child: Text('Loading...'))),
-                error: (error, stack) => Scaffold(
-                  body: Center(
-                    child: ErrorBanner(
-                      message: 'Failed to load settings.',
-                      fix: 'Check your internet connection and try again.',
-                      onRetry: () => ref.refresh(settingsProvider(user.uid)),
-                    ),
-                  ),
-                ),
-              );
-            },
-          );
+    if (user == null) {
+      return const SignInScreen();
+    }
+
+    // Email/password accounts must be verified before entering the app.
+    if (!user.emailVerified) {
+      return const VerifyEmailScreen();
+    }
+
+    return Consumer(
+      builder: (_, ref, _) {
+        final settings = ref.watch(settingsProvider(user.uid));
+        return settings.when(
+          data: (setting) {
+            if (setting == null || !setting.onboarded) {
+              return const FirstRunSetup();
+            }
+            return AppShell(
+              currentRoute: AppRoutes.home,
+              child: const HomeScreen(),
+            );
+          },
+          loading: () =>
+              const Scaffold(body: Center(child: Text('Loading...'))),
+          error: (error, stack) => Scaffold(
+            body: Center(
+              child: ErrorBanner(
+                message: 'Failed to load settings.',
+                fix: 'Check your internet connection and try again.',
+                onRetry: () => ref.refresh(settingsProvider(user.uid)),
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 }

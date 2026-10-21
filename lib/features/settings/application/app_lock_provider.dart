@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
@@ -7,52 +6,78 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:local_auth/local_auth.dart';
+import 'package:flutter/material.dart' show VoidCallback;
 
-/// Biometric authenticator callback used by [AppLockNotifier].
 typedef BiometricAuthenticator = Future<bool> Function();
 
-/// Abstract storage for PIN-related data.
 abstract class AppLockStorage {
   Future<String?> read(String key);
+
   Future<void> write(String key, String value);
+
   Future<void> delete(String key);
 }
 
-/// Production storage backed by [FlutterSecureStorage].
 class _SecureStorageImpl implements AppLockStorage {
-  final FlutterSecureStorage _storage = FlutterSecureStorage();
+  final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
   @override
-  Future<String?> read(String key) async => _storage.read(key: key);
+  Future<String?> read(String key) {
+    return _storage.read(key: key);
+  }
 
   @override
-  Future<void> write(String key, String value) async =>
-      _storage.write(key: key, value: value);
+  Future<void> write(String key, String value) {
+    return _storage.write(key: key, value: value);
+  }
 
   @override
-  Future<void> delete(String key) async => _storage.delete(key: key);
+  Future<void> delete(String key) {
+    return _storage.delete(key: key);
+  }
 }
 
-/// App lock provider: manages PIN (salted SHA-256 hash) in secure storage.
-///
-/// PIN is stored as salted hash in secure storage (device only).
-/// Never stored in plain text or in Firebase.
+/// Revision used to rebuild the application when lock visibility changes.
+final appLockRefreshProvider = StateProvider<int>((ref) => 0);
+
 class AppLockNotifier extends StateNotifier<bool> {
   AppLockNotifier(
     this._storage, {
     BiometricAuthenticator? biometricAuthenticator,
+    this._onLockStateChanged,
   }) : super(false) {
     _biometricAuthenticator = biometricAuthenticator ?? _defaultBiometricAuth;
     _load();
   }
 
   final AppLockStorage _storage;
-  late BiometricAuthenticator _biometricAuthenticator;
+  final VoidCallback? _onLockStateChanged;
+
+  late final BiometricAuthenticator _biometricAuthenticator;
+
+  static const String _pinKey = 'app_lock_pin';
+  static const String _saltKey = 'app_lock_salt';
+
+  bool _isLocked = false;
+  bool _hasLoaded = false;
+  DateTime? _backgroundedAt;
+
+  bool get hasPin => state;
+
+  bool get isLocked => _isLocked;
+
+  bool get hasLoaded => _hasLoaded;
+
+  void _notifyLockStateChanged() {
+    _onLockStateChanged?.call();
+  }
 
   static Future<bool> _defaultBiometricAuth() async {
     if (kIsWeb) return false;
+
     try {
       final auth = LocalAuthentication();
+
       return await auth.authenticate(
         localizedReason: 'Authenticate to unlock Money Manager',
         options: const AuthenticationOptions(
@@ -60,127 +85,213 @@ class AppLockNotifier extends StateNotifier<bool> {
           biometricOnly: true,
         ),
       );
-    } catch (e) {
+    } catch (_) {
       return false;
     }
   }
 
-  static const _pinKey = 'app_lock_pin';
-  static const _saltKey = 'app_lock_salt';
+  Future<void> _load() async {
+    try {
+      final pin = await _storage.read(_pinKey);
 
-  bool _hasPin = false;
-  bool _isLocked = false;
-  DateTime? _backgroundedAt;
+      if (!mounted) return;
 
-  bool get hasPin => _hasPin;
-  bool get isLocked => _isLocked;
+      final hasPin = pin != null && pin.isNotEmpty;
 
-  void _load() async {
-    final pin = await _storage.read(_pinKey);
-    _hasPin = pin != null && pin.isNotEmpty;
-    state = _hasPin;
+      _isLocked = hasPin;
+      _hasLoaded = true;
+      state = hasPin;
+
+      // Notify the application that storage initialization has completed.
+      _notifyLockStateChanged();
+    } catch (_) {
+      if (!mounted) return;
+
+      // Fail closed: do not expose protected content if we cannot determine
+      // whether a PIN exists. Keep initialization status explicit.
+      _hasLoaded = true;
+      _isLocked = true;
+      state = false;
+
+      _notifyLockStateChanged();
+    }
   }
 
-  /// Hashes a PIN with a random salt using SHA-256.
   static String hashPin(String pin, String salt) {
     final bytes = utf8.encode('$salt$pin');
     final digest = sha256.convert(bytes);
+
     return base64.encode(digest.bytes);
   }
 
-  /// Generates a random 16-character salt.
   static String generateSalt() {
     final random = Random.secure();
+
     return List.generate(
       16,
-      (i) => random.nextInt(256),
-    ).map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+      (_) => random.nextInt(256),
+    ).map((byte) => byte.toRadixString(16).padLeft(2, '0')).join();
   }
 
-  /// Sets up a new PIN.
-  Future<void> setupPin(String pin) async {
+  Future<void> _storePin(String pin) async {
+    if (!RegExp(r'^\d{4}$').hasMatch(pin)) {
+      throw ArgumentError('The PIN must contain exactly four digits.');
+    }
+
     final salt = generateSalt();
     final hash = hashPin(pin, salt);
-    await _storage.write(_pinKey, hash);
+
     await _storage.write(_saltKey, salt);
-    _hasPin = true;
+    await _storage.write(_pinKey, hash);
+
+    if (!mounted) return;
+
+    _isLocked = false;
     state = true;
+
+    _notifyLockStateChanged();
   }
 
-  /// Verifies a PIN against the stored hash.
+  /// Creates a PIN only when one does not already exist.
+  ///
+  /// Existing PINs must be changed using [changePin], which verifies the
+  /// current PIN before saving a replacement.
+  Future<void> setupPin(String pin) async {
+    if (!RegExp(r'^\d{4}$').hasMatch(pin)) {
+      throw ArgumentError('The PIN must contain exactly four digits.');
+    }
+
+    final existingPin = await _storage.read(_pinKey);
+
+    if (existingPin != null && existingPin.isNotEmpty) {
+      throw StateError(
+        'A PIN already exists. Verify the current PIN before changing it.',
+      );
+    }
+
+    await _storePin(pin);
+  }
+
   Future<bool> verifyPin(String pin) async {
-    final storedHash = await _storage.read(_pinKey);
-    final salt = await _storage.read(_saltKey);
-    if (storedHash == null || salt == null) return false;
-    final hash = hashPin(pin, salt);
-    return hash == storedHash;
+    if (!RegExp(r'^\d{4}$').hasMatch(pin)) {
+      return false;
+    }
+
+    try {
+      final storedHash = await _storage.read(_pinKey);
+      final salt = await _storage.read(_saltKey);
+
+      if (storedHash == null || salt == null) {
+        return false;
+      }
+
+      final candidateHash = hashPin(pin, salt);
+
+      return candidateHash == storedHash;
+    } catch (_) {
+      return false;
+    }
   }
 
-  /// Removes the PIN (used for forgot PIN flow).
   Future<void> removePin() async {
     await _storage.delete(_pinKey);
     await _storage.delete(_saltKey);
-    _hasPin = false;
-    state = false;
+
+    if (!mounted) return;
+
     _isLocked = false;
+    state = false;
+    _backgroundedAt = null;
+
+    _notifyLockStateChanged();
   }
 
-  /// Changes the PIN.
-  Future<void> changePin(String oldPin, String newPin) async {
+  /// Changes an existing PIN only after verifying the current PIN.
+  Future<bool> changePin(String oldPin, String newPin) async {
+    if (!RegExp(r'^\d{4}$').hasMatch(newPin)) {
+      throw ArgumentError('The new PIN must contain exactly four digits.');
+    }
+
     final verified = await verifyPin(oldPin);
-    if (!verified) return;
-    await setupPin(newPin);
+
+    if (!verified) {
+      return false;
+    }
+
+    await _storePin(newPin);
+
+    return true;
   }
 
-  /// Locks the app immediately.
   void lock() {
+    if (!_hasLoaded || !state || _isLocked) return;
+
     _isLocked = true;
+    _notifyLockStateChanged();
   }
 
-  /// Unlocks the app after verifying the PIN.
   Future<bool> unlock(String pin) async {
+    if (!_isLocked) return true;
+
     final verified = await verifyPin(pin);
-    if (verified) {
-      _isLocked = false;
+
+    if (!verified || !mounted) {
+      return false;
     }
-    return verified;
+
+    _isLocked = false;
+    _notifyLockStateChanged();
+
+    return true;
   }
 
-  /// Unlocks the app after successful biometric authentication.
-  /// Returns true if biometric authentication succeeded and the app is unlocked.
   Future<bool> unlockWithBiometrics() async {
-    final ok = await authenticateWithBiometrics();
-    if (ok) {
-      _isLocked = false;
+    if (!_isLocked) return true;
+
+    final authenticated = await authenticateWithBiometrics();
+
+    if (!authenticated || !mounted) {
+      return false;
     }
-    return ok;
+
+    _isLocked = false;
+    _notifyLockStateChanged();
+
+    return true;
   }
 
-  /// Records that the app went to the background.
   void didEnterBackground() {
     _backgroundedAt = DateTime.now();
   }
 
-  /// Checks if the app has been in the background for more than 15 seconds.
-  /// Returns true if the app should be locked.
   bool checkBackgroundLock() {
-    if (_backgroundedAt == null) return false;
-    final elapsed = DateTime.now().difference(_backgroundedAt!);
+    final backgroundedAt = _backgroundedAt;
+
+    if (backgroundedAt == null) {
+      return false;
+    }
+
     _backgroundedAt = null;
+
+    final elapsed = DateTime.now().difference(backgroundedAt);
+
     return elapsed.inSeconds >= 15;
   }
 
-  /// Attempts biometric authentication if available.
-  /// Returns false on web or if biometrics is not available.
   Future<bool> authenticateWithBiometrics() async {
     try {
       return await _biometricAuthenticator();
-    } catch (e) {
+    } catch (_) {
       return false;
     }
   }
 }
 
 final appLockProvider = StateNotifierProvider<AppLockNotifier, bool>((ref) {
-  return AppLockNotifier(_SecureStorageImpl());
+  return AppLockNotifier(
+    _SecureStorageImpl(),
+    onLockStateChanged: () {
+      ref.read(appLockRefreshProvider.notifier).state++;
+    },
+  );
 });

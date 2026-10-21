@@ -1,3 +1,5 @@
+import 'dart:js_interop';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -6,6 +8,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'firebase_options.dart';
 import 'app/app.dart';
+
+@JS('removeSplashFromWeb')
+external void removeSplashFromWeb();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,4 +25,14 @@ void main() async {
   }
 
   runApp(ProviderScope(child: const App()));
+
+  // Remove the HTML web splash screen after Flutter renders its first frame.
+  // web/index.html defines removeSplashFromWeb() but never calls it, so the
+  // blue splash background (#0F5FA8) and <picture id="splash"> persist over
+  // the app after it loads.
+  if (kIsWeb) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      removeSplashFromWeb();
+    });
+  }
 }

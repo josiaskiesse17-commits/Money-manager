@@ -6,13 +6,19 @@ import 'package:money_manager/data/models/budget.dart';
 
 class BudgetRepository {
   BudgetRepository(this._firestore);
+
   final FirebaseFirestore _firestore;
 
-  DocumentReference _budgetDoc(String uid, String categoryId) => _firestore
-      .collection('users')
-      .doc(uid)
-      .collection('budgets')
-      .doc(categoryId);
+  DocumentReference<Map<String, dynamic>> _budgetDoc(
+    String uid,
+    String categoryId,
+  ) {
+    return _firestore
+        .collection('users')
+        .doc(uid)
+        .collection('budgets')
+        .doc(categoryId);
+  }
 
   Stream<Budget?> watchBudget(String uid, String categoryId) {
     return _budgetDoc(uid, categoryId).snapshots().map((doc) {
@@ -27,16 +33,22 @@ class BudgetRepository {
         .doc(uid)
         .collection('budgets')
         .snapshots()
-        .map((snap) => snap.docs.map((d) => Budget.fromDocument(d)).toList());
+        .map(
+          (snapshot) =>
+              snapshot.docs.map(Budget.fromDocument).toList(),
+        );
   }
 
-  Future<void> saveBudget(String uid, Budget budget) {
-    return _budgetDoc(
-      uid,
-      budget.categoryId,
-    ).set(budget.toMap(), SetOptions(merge: true)).catchError((e) {
-      reportError(e, userMessage: 'Failed to save budget');
-    });
+  Future<void> saveBudget(String uid, Budget budget) async {
+    try {
+      await _budgetDoc(uid, budget.categoryId).set(
+        budget.toMap(),
+        SetOptions(merge: true),
+      );
+    } catch (error, stackTrace) {
+      reportError(error, userMessage: 'Failed to save budget');
+      Error.throwWithStackTrace(error, stackTrace);
+    }
   }
 }
 

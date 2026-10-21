@@ -26,6 +26,16 @@ class AuthStateNotifier extends StateNotifier<User?> {
   bool get resetSent => _resetSent;
   bool get busy => _busy;
 
+  String? _verificationError;
+  bool _verificationBusy = false;
+
+  /// Whether the currently signed-in user's email is verified, read straight
+  /// from the Firebase [User.emailVerified] source of truth.
+  bool get isEmailVerified => state?.emailVerified ?? false;
+
+  String? get verificationError => _verificationError;
+  bool get verificationBusy => _verificationBusy;
+
   Future<void> signIn(String email, String password) async {
     _signInError = null;
     _busy = true;
@@ -92,6 +102,43 @@ class AuthStateNotifier extends StateNotifier<User?> {
       reportError(e, userMessage: 'Sign out failed. Please try again.');
     } finally {
       _busy = false;
+    }
+  }
+
+  /// Sends a verification email to the signed-in user.
+  Future<void> sendEmailVerification() async {
+    _verificationError = null;
+    _verificationBusy = true;
+    try {
+      await _repo.sendEmailVerification();
+    } on FirebaseAuthException catch (e) {
+      _verificationError = _mapAuthException(e.code);
+      reportError(e, userMessage: _verificationError);
+    } catch (e) {
+      _verificationError = 'Failed to send verification email.';
+      reportError(e, userMessage: _verificationError);
+    } finally {
+      _verificationBusy = false;
+    }
+  }
+
+  /// Reloads the signed-in user from Firebase so [isEmailVerified] reflects
+  /// the latest verification status (for example after returning from the
+  /// inbox). Updates [state] to the reloaded user.
+  Future<void> reloadUser() async {
+    _verificationError = null;
+    _verificationBusy = true;
+    try {
+      await _repo.reloadUser();
+      state = _repo.currentUser;
+    } on FirebaseAuthException catch (e) {
+      _verificationError = _mapAuthException(e.code);
+      reportError(e, userMessage: _verificationError);
+    } catch (e) {
+      _verificationError = 'Failed to refresh verification status.';
+      reportError(e, userMessage: _verificationError);
+    } finally {
+      _verificationBusy = false;
     }
   }
 

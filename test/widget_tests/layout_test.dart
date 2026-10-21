@@ -12,6 +12,7 @@ import 'package:money_manager/data/firebase_providers.dart';
 import 'package:money_manager/features/budgets/presentation/budgets_screen.dart';
 import 'package:money_manager/features/charts/presentation/charts_screen.dart';
 import 'package:money_manager/features/home/presentation/home_screen.dart';
+import 'package:money_manager/features/reports/presentation/report_screen.dart';
 import 'package:money_manager/features/settings/presentation/settings_screen.dart';
 import 'package:money_manager/features/transactions/presentation/transaction_list_screen.dart';
 
@@ -539,6 +540,170 @@ void main() {
           reason: 'NavigationBar should be present at phone width',
         );
       });
+    }
+  });
+
+  // ── STEP 3: Charts, Convert, Report render without overflow at phone and web ──
+  final overflowScreens = <String, Widget>{
+    'Charts': const ChartsScreen(),
+    'Report': const ReportScreen(),
+  };
+
+  for (final entry in overflowScreens.entries) {
+    testWidgets('${entry.key} renders at 360x800 without overflow', (
+      tester,
+    ) async {
+      final overrides = await signedInOverrides();
+      await tester.binding.setSurfaceSize(phone);
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: overrides,
+          child: MaterialApp(
+            theme: AppTheme.light(),
+            darkTheme: AppTheme.dark(),
+            home: entry.value,
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      final exception = tester.takeException();
+      expect(exception, isNull, reason: 'Unexpected exception: $exception');
+    });
+
+    testWidgets('${entry.key} renders at 1280x800 without overflow', (
+      tester,
+    ) async {
+      final overrides = await signedInOverrides();
+      await tester.binding.setSurfaceSize(web);
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: overrides,
+          child: MaterialApp(
+            theme: AppTheme.light(),
+            darkTheme: AppTheme.dark(),
+            home: entry.value,
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      final exception = tester.takeException();
+      expect(exception, isNull, reason: 'Unexpected exception: $exception');
+    });
+  }
+
+  // ── STEP 4: Budgets with many items remains scrollable ──
+  group('Budgets many items scrollable', () {
+    for (final size in [phone, web]) {
+      testWidgets(
+        'renders 25 budget items at ${size.width}x${size.height} without overflow',
+        (tester) async {
+          final mockAuth = MockFirebaseAuth();
+          final mockFirestore = FakeFirebaseFirestore();
+
+          await mockAuth.createUserWithEmailAndPassword(
+            email: 'test@example.com',
+            password: 'password123',
+          );
+          await mockAuth.signInWithEmailAndPassword(
+            email: 'test@example.com',
+            password: 'password123',
+          );
+          final uid = mockAuth.currentUser!.uid;
+
+          await mockFirestore
+              .collection('users')
+              .doc(uid)
+              .collection('settings')
+              .doc('main')
+              .set({
+                'usdToCdfRate': 280050,
+                'theme': 'light',
+                'displayMode': 'combined',
+                'onboarded': true,
+              });
+          await mockFirestore
+              .collection('users')
+              .doc(uid)
+              .collection('wallets')
+              .doc('CDF')
+              .set({
+                'currency': 'CDF',
+                'openingBalance': 35000,
+                'balance': 42000,
+              });
+          await mockFirestore
+              .collection('users')
+              .doc(uid)
+              .collection('wallets')
+              .doc('USD')
+              .set({
+                'currency': 'USD',
+                'openingBalance': 10000,
+                'balance': 15000,
+              });
+
+          // Create 25 expense categories with budgets
+          final batch = mockFirestore.batch();
+          for (int i = 0; i < 25; i++) {
+            final catRef = mockFirestore
+                .collection('users')
+                .doc(uid)
+                .collection('categories')
+                .doc('cat_$i');
+            batch.set(catRef, {
+              'name': 'Category $i',
+              'icon': 'category',
+              'color': 0xFFC73E2E,
+              'type': 'expense',
+              'archived': false,
+            });
+            final budgetRef = mockFirestore
+                .collection('users')
+                .doc(uid)
+                .collection('budgets')
+                .doc('budget_$i');
+            batch.set(budgetRef, {
+              'categoryId': 'cat_$i',
+              'currency': 'USD',
+              'monthlyLimit': 50000,
+            });
+          }
+          await batch.commit();
+
+          await tester.pumpWidget(
+            ProviderScope(
+              overrides: [
+                firebaseAuthProvider.overrideWithValue(mockAuth),
+                firestoreProvider.overrideWithValue(mockFirestore),
+              ],
+              child: MaterialApp(
+                theme: AppTheme.light(),
+                home: const BudgetsScreen(),
+              ),
+            ),
+          );
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 500));
+          await tester.pump(const Duration(milliseconds: 500));
+          await tester.pump(const Duration(milliseconds: 500));
+          await tester.pumpAndSettle();
+
+          final exception = tester.takeException();
+          expect(exception, isNull, reason: 'Unexpected exception: $exception');
+
+          // With SingleChildScrollView, budget cards should be findable
+          // even when they extend beyond the viewport.
+          expect(find.text('Category 24'), findsOneWidget);
+        },
+      );
     }
   });
 }

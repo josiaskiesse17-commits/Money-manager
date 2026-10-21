@@ -38,6 +38,13 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     await ref
         .read(authProvider.notifier)
         .signUp(_emailCtrl.text.trim(), _passwordCtrl.text);
+
+    if (!mounted) return;
+    if (ref.read(authProvider.notifier).signUpError == null) {
+      // Send the newly registered user through the gate so an unverified
+      // account lands on the verification screen.
+      context.go(AppRoutes.signIn);
+    }
   }
 
   @override

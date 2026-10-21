@@ -4,13 +4,17 @@ import 'package:money_manager/app/routes.dart';
 
 /// Navigation shell for the app.
 ///
-/// Bottom [NavigationBar] under 840px wide, [NavigationRail] at 840px and
-/// above. Destinations: Home, Transactions, Budgets, Charts, Settings.
+/// Bottom NavigationBar under 840px wide, NavigationRail at 840px and above.
+/// Supports horizontal swiping between the five main destinations.
 class AppShell extends StatefulWidget {
   final Widget child;
   final String currentRoute;
 
-  const AppShell({super.key, required this.child, required this.currentRoute});
+  const AppShell({
+    super.key,
+    required this.child,
+    required this.currentRoute,
+  });
 
   @override
   State<AppShell> createState() => _AppShellState();
@@ -19,118 +23,173 @@ class AppShell extends StatefulWidget {
 class _AppShellState extends State<AppShell> {
   late int _selectedIndex;
 
+  double _horizontalDragDistance = 0;
+
+  static const double _minimumSwipeDistance = 80;
+  static const double _minimumSwipeVelocity = 300;
+
   @override
   void initState() {
     super.initState();
     _selectedIndex = _routeToIndex(widget.currentRoute);
   }
 
-  int _routeToIndex(String route) {
-    switch (route) {
-      case AppRoutes.home:
-        return 0;
-      case AppRoutes.transactions:
-        return 1;
-      case AppRoutes.budgets:
-        return 2;
-      case AppRoutes.charts:
-        return 3;
-      case AppRoutes.settings:
-        return 4;
-      default:
-        return 0;
+  @override
+  void didUpdateWidget(covariant AppShell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.currentRoute != widget.currentRoute) {
+      _selectedIndex = _routeToIndex(widget.currentRoute);
     }
+  }
+
+  int _routeToIndex(String route) {
+    if (route == AppRoutes.home) return 0;
+    if (route == AppRoutes.transactions) return 1;
+    if (route == AppRoutes.budgets) return 2;
+    if (route == AppRoutes.charts) return 3;
+    if (route == AppRoutes.settings) return 4;
+
+    return 0;
   }
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
+    final width = MediaQuery.sizeOf(context).width;
     final isWide = width >= 840;
 
-    final body = isWide
-        ? Row(
-            children: [
-              NavigationRail(
-                selectedIndex: _selectedIndex,
-                onDestinationSelected: (index) => _navigateTo(index),
-                labelType: NavigationRailLabelType.all,
-                destinations: const [
-                  NavigationRailDestination(
-                    icon: Icon(Icons.home),
-                    label: Text('Home'),
-                  ),
-                  NavigationRailDestination(
-                    icon: Icon(Icons.receipt_long),
-                    label: Text('Transactions'),
-                  ),
-                  NavigationRailDestination(
-                    icon: Icon(Icons.account_balance_wallet),
-                    label: Text('Budgets'),
-                  ),
-                  NavigationRailDestination(
-                    icon: Icon(Icons.bar_chart),
-                    label: Text('Charts'),
-                  ),
-                  NavigationRailDestination(
-                    icon: Icon(Icons.settings),
-                    label: Text('Settings'),
-                  ),
-                ],
-              ),
-              const VerticalDivider(thickness: 1, width: 1),
-              Expanded(child: widget.child),
-            ],
-          )
-        : widget.child;
+    final destinations = const [
+      NavigationDestination(
+        icon: Icon(Icons.home_outlined),
+        selectedIcon: Icon(Icons.home),
+        label: 'Home',
+      ),
+      NavigationDestination(
+        icon: Icon(Icons.receipt_long_outlined),
+        selectedIcon: Icon(Icons.receipt_long),
+        label: 'Transactions',
+      ),
+      NavigationDestination(
+        icon: Icon(Icons.account_balance_wallet_outlined),
+        selectedIcon: Icon(Icons.account_balance_wallet),
+        label: 'Budgets',
+      ),
+      NavigationDestination(
+        icon: Icon(Icons.bar_chart_outlined),
+        selectedIcon: Icon(Icons.bar_chart),
+        label: 'Charts',
+      ),
+      NavigationDestination(
+        icon: Icon(Icons.settings_outlined),
+        selectedIcon: Icon(Icons.settings),
+        label: 'Settings',
+      ),
+    ];
+
+    final body = GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onHorizontalDragStart: (_) {
+        _horizontalDragDistance = 0;
+      },
+      onHorizontalDragUpdate: (details) {
+        _horizontalDragDistance += details.delta.dx;
+      },
+      onHorizontalDragEnd: (details) {
+        _handleSwipe(
+          distance: _horizontalDragDistance,
+          velocity: details.primaryVelocity ?? 0,
+        );
+        _horizontalDragDistance = 0;
+      },
+      child: widget.child,
+    );
 
     return Scaffold(
-      body: body,
+      body: isWide
+          ? Row(
+              children: [
+                NavigationRail(
+                  selectedIndex: _selectedIndex,
+                  onDestinationSelected: _navigateTo,
+                  labelType: NavigationRailLabelType.all,
+                  destinations: const [
+                    NavigationRailDestination(
+                      icon: Icon(Icons.home_outlined),
+                      selectedIcon: Icon(Icons.home),
+                      label: Text('Home'),
+                    ),
+                    NavigationRailDestination(
+                      icon: Icon(Icons.receipt_long_outlined),
+                      selectedIcon: Icon(Icons.receipt_long),
+                      label: Text('Transactions'),
+                    ),
+                    NavigationRailDestination(
+                      icon: Icon(Icons.account_balance_wallet_outlined),
+                      selectedIcon: Icon(Icons.account_balance_wallet),
+                      label: Text('Budgets'),
+                    ),
+                    NavigationRailDestination(
+                      icon: Icon(Icons.bar_chart_outlined),
+                      selectedIcon: Icon(Icons.bar_chart),
+                      label: Text('Charts'),
+                    ),
+                    NavigationRailDestination(
+                      icon: Icon(Icons.settings_outlined),
+                      selectedIcon: Icon(Icons.settings),
+                      label: Text('Settings'),
+                    ),
+                  ],
+                ),
+                const VerticalDivider(thickness: 1, width: 1),
+                Expanded(child: body),
+              ],
+            )
+          : body,
       bottomNavigationBar: isWide
           ? null
           : NavigationBar(
               selectedIndex: _selectedIndex,
-              onDestinationSelected: (index) => _navigateTo(index),
-              destinations: const [
-                NavigationDestination(icon: Icon(Icons.home), label: 'Home'),
-                NavigationDestination(
-                  icon: Icon(Icons.receipt_long),
-                  label: 'Transactions',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.account_balance_wallet),
-                  label: 'Budgets',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.bar_chart),
-                  label: 'Charts',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.settings),
-                  label: 'Settings',
-                ),
-              ],
+              onDestinationSelected: _navigateTo,
+              destinations: destinations,
             ),
     );
   }
 
-  void _navigateTo(int index) {
-    setState(() => _selectedIndex = index);
-    switch (index) {
-      case 0:
-        context.go(AppRoutes.home);
-        break;
-      case 1:
-        context.go(AppRoutes.transactions);
-        break;
-      case 2:
-        context.go(AppRoutes.budgets);
-        break;
-      case 3:
-        context.go(AppRoutes.charts);
-        break;
-      case 4:
-        context.go(AppRoutes.settings);
-        break;
+  void _handleSwipe({
+    required double distance,
+    required double velocity,
+  }) {
+    final isLongEnough = distance.abs() >= _minimumSwipeDistance;
+    final isFastEnough = velocity.abs() >= _minimumSwipeVelocity;
+
+    if (!isLongEnough && !isFastEnough) return;
+
+    if (distance < 0 || velocity < -_minimumSwipeVelocity) {
+      // Swipe left: move to the next main destination.
+      if (_selectedIndex < 4) {
+        _navigateTo(_selectedIndex + 1);
+      }
+    } else if (distance > 0 || velocity > _minimumSwipeVelocity) {
+      // Swipe right: move to the previous main destination.
+      if (_selectedIndex > 0) {
+        _navigateTo(_selectedIndex - 1);
+      }
     }
+  }
+
+  void _navigateTo(int index) {
+    if (index < 0 || index > 4 || index == _selectedIndex) {
+      return;
+    }
+
+    final routes = [
+      AppRoutes.home,
+      AppRoutes.transactions,
+      AppRoutes.budgets,
+      AppRoutes.charts,
+      AppRoutes.settings,
+    ];
+
+    context.go(routes[index]);
   }
 }

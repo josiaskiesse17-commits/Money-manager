@@ -2,10 +2,11 @@ import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import 'package:money_manager/app/month_provider.dart';
 import 'package:money_manager/app/routes.dart';
-import 'package:money_manager/app/widgets/app_card.dart';
 import 'package:money_manager/app/widgets/amount_text.dart';
+import 'package:money_manager/app/widgets/app_card.dart';
 import 'package:money_manager/app/widgets/empty_state.dart';
 import 'package:money_manager/app/widgets/error_banner.dart';
 import 'package:money_manager/app/widgets/responsive_body.dart';
@@ -35,101 +36,105 @@ class HomeScreen extends ConsumerWidget {
     final budgetsAsync = ref.watch(budgetProvider(uid));
     final categoriesAsync = ref.watch(categoryProvider(uid));
     final settingsAsync = ref.watch(settingsProvider(uid));
-    final width = MediaQuery.of(context).size.width;
+
+    final width = MediaQuery.sizeOf(context).width;
+    final isPhone = width < 600;
 
     return ResponsiveBody(
-      // Wide web (900+) uses the two-column Home, max width 1040.
       maxWidth: width >= 900 ? 1040 : null,
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SectionHeader(
-              title: 'Home',
-              subtitle: 'Your money at a glance.',
-            ),
-            const SizedBox(height: 8),
-            // Month navigation
-            _buildMonthNavigation(ref, context, selectedMonth),
-            const SizedBox(height: 8),
-            // Combined async data
-            walletsAsync.when(
-              data: (wallets) => transactionsAsync.when(
-                data: (transactions) => budgetsAsync.when(
-                  data: (budgets) => categoriesAsync.when(
-                    data: (categories) => settingsAsync.when(
-                      data: (setting) {
-                        final filtered = transactions.where((t) {
-                          final monthStart = DateTime(
-                            selectedMonth.year,
-                            selectedMonth.month,
-                            1,
-                          );
-                          final monthEnd = DateTime(
-                            selectedMonth.year,
-                            selectedMonth.month + 1,
-                            1,
-                          );
-                          return t.date.isAfter(monthStart) &&
-                              t.date.isBefore(monthEnd);
-                        }).toList();
+      padding: EdgeInsets.only(
+        left: isPhone ? 16 : 24,
+        top: 0,
+        right: isPhone ? 16 : 24,
+        bottom: isPhone ? 16 : 24,
+      ),
+      child: SafeArea(
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SectionHeader(
+                title: 'Home',
+                subtitle: 'Your money at a glance.',
+              ),
+              const SizedBox(height: 8),
+              _buildMonthNavigation(ref, context, selectedMonth),
+              const SizedBox(height: 8),
+              walletsAsync.when(
+                data: (wallets) => transactionsAsync.when(
+                  data: (transactions) => budgetsAsync.when(
+                    data: (budgets) => categoriesAsync.when(
+                      data: (categories) => settingsAsync.when(
+                        data: (setting) {
+                          final filtered = transactions.where((t) {
+                            final monthStart = DateTime(
+                              selectedMonth.year,
+                              selectedMonth.month,
+                              1,
+                            );
+                            final monthEnd = DateTime(
+                              selectedMonth.year,
+                              selectedMonth.month + 1,
+                              1,
+                            );
 
-                        return _buildForWidth(
-                          context,
-                          wallets,
-                          filtered,
-                          budgets,
-                          categories,
-                          selectedMonth,
-                        );
-                      },
+                            return t.date.isAfter(monthStart) &&
+                                t.date.isBefore(monthEnd);
+                          }).toList();
+
+                          return _buildForWidth(
+                            context,
+                            wallets,
+                            filtered,
+                            budgets,
+                            categories,
+                            selectedMonth,
+                          );
+                        },
+                        loading: () => const _LoadingState(),
+                        error: (error, stack) => ErrorBanner(
+                          message: 'Could not load settings.',
+                          fix: 'Check your connection and try again.',
+                          onRetry: () => ref.refresh(settingsProvider(uid)),
+                        ),
+                      ),
                       loading: () => const _LoadingState(),
                       error: (error, stack) => ErrorBanner(
-                        message: 'Could not load settings.',
+                        message: 'Could not load categories.',
                         fix: 'Check your connection and try again.',
-                        onRetry: () => ref.refresh(settingsProvider(uid)),
+                        onRetry: () => ref.refresh(categoryProvider(uid)),
                       ),
                     ),
                     loading: () => const _LoadingState(),
                     error: (error, stack) => ErrorBanner(
-                      message: 'Could not load categories.',
+                      message: 'Could not load budgets.',
                       fix: 'Check your connection and try again.',
-                      onRetry: () => ref.refresh(categoryProvider(uid)),
+                      onRetry: () => ref.refresh(budgetProvider(uid)),
                     ),
                   ),
                   loading: () => const _LoadingState(),
                   error: (error, stack) => ErrorBanner(
-                    message: 'Could not load budgets.',
+                    message: 'Could not load transactions.',
                     fix: 'Check your connection and try again.',
-                    onRetry: () => ref.refresh(budgetProvider(uid)),
+                    onRetry: () => ref.refresh(transactionProvider(uid)),
                   ),
                 ),
                 loading: () => const _LoadingState(),
                 error: (error, stack) => ErrorBanner(
-                  message: 'Could not load transactions.',
+                  message: 'Could not load your wallets.',
                   fix: 'Check your connection and try again.',
-                  onRetry: () => ref.refresh(transactionProvider(uid)),
+                  onRetry: () => ref.refresh(walletProvider(uid)),
                 ),
               ),
-              loading: () => const _LoadingState(),
-              error: (error, stack) => ErrorBanner(
-                message: 'Could not load your wallets.',
-                fix: 'Check your connection and try again.',
-                onRetry: () => ref.refresh(walletProvider(uid)),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
-  /// Single-column stack on phones, two columns on wide web (900+).
-  ///
-  /// Wide layout uses [Row] with [Expanded] children inside [ResponsiveBody]
-  /// (maxWidth 1040), so width is bounded and [Expanded] is safe.
-  /// Phone layout is a single [Column] — no [Expanded] needed.
+  /// Single-column layout on phones, two columns on wide screens.
   Widget _buildForWidth(
     BuildContext context,
     List<Wallet> wallets,
@@ -138,7 +143,7 @@ class HomeScreen extends ConsumerWidget {
     List<Category> categories,
     DateTime selectedMonth,
   ) {
-    final width = MediaQuery.of(context).size.width;
+    final width = MediaQuery.sizeOf(context).width;
 
     final balances = _buildWalletBalances(wallets);
     final summary = _buildMonthSummary(transactions);
@@ -151,10 +156,6 @@ class HomeScreen extends ConsumerWidget {
     final recent = _buildRecentTransactions(context, transactions, categories);
 
     if (width >= 900) {
-      // Wide: balances + summary + alerts on the left,
-      // recent transactions on the right. [Row] with [Expanded] children
-      // inside [ResponsiveBody] (maxWidth 1040) — width is bounded so
-      // [Expanded] is safe. Each column's [Column] uses mainAxisSize.min.
       return Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -224,8 +225,8 @@ class HomeScreen extends ConsumerWidget {
             value: selectedMonth.year,
             isExpanded: true,
             items: List.generate(10, (i) {
-              final y = DateTime.now().year - 2 + i;
-              return DropdownMenuItem(value: y, child: Text('$y'));
+              final year = DateTime.now().year - 2 + i;
+              return DropdownMenuItem(value: year, child: Text('$year'));
             }),
             onChanged: (year) {
               if (year != null) {
@@ -261,10 +262,10 @@ class HomeScreen extends ConsumerWidget {
 
   Widget _buildWalletBalances(List<dynamic> wallets) {
     final cdfWallet = wallets.whereType<Wallet>().firstWhereOrNull(
-      (w) => w.currency == 'CDF',
+      (wallet) => wallet.currency == 'CDF',
     );
     final usdWallet = wallets.whereType<Wallet>().firstWhereOrNull(
-      (w) => w.currency == 'USD',
+      (wallet) => wallet.currency == 'USD',
     );
 
     return Row(
@@ -318,11 +319,13 @@ class HomeScreen extends ConsumerWidget {
 
   Widget _buildMonthSummary(List<Transaction> transactions) {
     final income = transactions
-        .where((t) => t.type == 'income')
-        .fold<int>(0, (sum, t) => sum + t.amount);
+        .where((transaction) => transaction.type == 'income')
+        .fold<int>(0, (sum, transaction) => sum + transaction.amount);
+
     final expense = transactions
-        .where((t) => t.type == 'expense')
-        .fold<int>(0, (sum, t) => sum + t.amount);
+        .where((transaction) => transaction.type == 'expense')
+        .fold<int>(0, (sum, transaction) => sum + transaction.amount);
+
     final net = income - expense;
 
     return Row(
@@ -366,29 +369,35 @@ class HomeScreen extends ConsumerWidget {
     final monthEnd = DateTime(selectedMonth.year, selectedMonth.month + 1, 1);
 
     final alerts = <String>[];
+
     for (final budget in budgets) {
-      final matching = categories.where((c) => c.id == budget.categoryId);
+      final matching = categories.where(
+        (category) => category.id == budget.categoryId,
+      );
+
       if (matching.isEmpty) continue;
-      final cat = matching.first;
+
+      final category = matching.first;
+
       final spent = transactions
           .where(
-            (t) =>
-                t.type == 'expense' &&
-                t.categoryId == budget.categoryId &&
-                t.currency == budget.currency &&
-                t.date.isAfter(monthStart) &&
-                t.date.isBefore(monthEnd),
+            (transaction) =>
+                transaction.type == 'expense' &&
+                transaction.categoryId == budget.categoryId &&
+                transaction.currency == budget.currency &&
+                transaction.date.isAfter(monthStart) &&
+                transaction.date.isBefore(monthEnd),
           )
-          .fold<int>(0, (sum, t) => sum + t.amount);
+          .fold<int>(0, (sum, transaction) => sum + transaction.amount);
 
-      final pct = budget.monthlyLimit > 0
+      final percentage = budget.monthlyLimit > 0
           ? (spent * 100) ~/ budget.monthlyLimit
           : 0;
 
-      if (pct >= 100) {
-        alerts.add('${cat.name} budget exceeded ($pct%)');
-      } else if (pct >= 80) {
-        alerts.add('${cat.name} budget warning ($pct%)');
+      if (percentage >= 100) {
+        alerts.add('${category.name} budget exceeded ($percentage%)');
+      } else if (percentage >= 80) {
+        alerts.add('${category.name} budget warning ($percentage%)');
       }
     }
 
@@ -405,13 +414,13 @@ class HomeScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 8),
           ...alerts.map(
-            (a) => Padding(
+            (alert) => Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: Row(
                 children: [
-                  Icon(Icons.warning, size: 16, color: Colors.orange),
+                  const Icon(Icons.warning, size: 16, color: Colors.orange),
                   const SizedBox(width: 8),
-                  Expanded(child: Text(a)),
+                  Expanded(child: Text(alert)),
                 ],
               ),
             ),
@@ -434,8 +443,8 @@ class HomeScreen extends ConsumerWidget {
         Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Expanded(
-              child: const Text(
+            const Expanded(
+              child: Text(
                 'Recent transactions',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 overflow: TextOverflow.ellipsis,
@@ -456,13 +465,16 @@ class HomeScreen extends ConsumerWidget {
             subtitle: 'Add your first transaction to see it here.',
           )
         else
-          ...recent.map((txn) {
-            final matching = categories.where((c) => c.id == txn.categoryId);
+          ...recent.map((transaction) {
+            final matching = categories.where(
+              (category) => category.id == transaction.categoryId,
+            );
+
             if (matching.isEmpty) return const SizedBox.shrink();
-            final cat = matching.first;
+
             return TransactionListItem(
-              transaction: txn,
-              category: cat,
+              transaction: transaction,
+              category: matching.first,
               onTap: () {},
               onDelete: () {},
             );
@@ -472,7 +484,7 @@ class HomeScreen extends ConsumerWidget {
   }
 }
 
-/// Fixed-height loading state: safe inside scroll views (no [Expanded]).
+/// Fixed-height loading state: safe inside scroll views.
 class _LoadingState extends StatelessWidget {
   const _LoadingState();
 
