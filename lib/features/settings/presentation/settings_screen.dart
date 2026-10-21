@@ -8,7 +8,6 @@ import 'package:money_manager/app/widgets/app_card.dart';
 import 'package:money_manager/app/widgets/error_banner.dart';
 import 'package:money_manager/app/widgets/primary_button.dart';
 import 'package:money_manager/app/widgets/responsive_body.dart';
-import 'package:money_manager/app/widgets/secondary_button.dart';
 import 'package:money_manager/app/widgets/section_header.dart';
 import 'package:money_manager/data/models/category.dart';
 import 'package:money_manager/data/models/setting.dart';
@@ -139,9 +138,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               const SizedBox(height: 20),
               _buildAppLockCard(context),
               const SizedBox(height: 24),
-              SecondaryButton(
-                text: 'Sign out',
-                onPressed: () => _confirmSignOut(context),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () => _confirmSignOut(context),
+                  icon: const Icon(Icons.logout),
+                  label: const Text('Sign out'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Theme.of(context).colorScheme.error,
+                    side: BorderSide(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                ),
               ),
             ],
           ),
@@ -151,47 +161,69 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Widget _buildExchangeRateCard(Setting setting, String uid) {
+    final isLight = Theme.of(context).brightness == Brightness.light;
+
+    final inputTextColor = isLight ? Colors.black87 : Colors.white;
+    final secondaryTextColor = isLight ? Colors.black54 : Colors.white70;
+
     return AppCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SectionHeader(
-            title: 'Exchange rate',
-            subtitle: 'Set the CDF value of one US dollar.',
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _rateController,
-            focusNode: _rateFocusNode,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
-            ],
-            decoration: InputDecoration(
-              labelText: 'CDF per 1 USD',
-              prefixIcon: const Icon(Icons.currency_exchange),
-              helperText: 'Example: 2800.50',
-              suffixText: 'CDF',
-              errorText: _rateError,
-              border: const OutlineInputBorder(),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SectionHeader(
+              title: 'Exchange rate',
+              subtitle: 'Set the CDF value of one US dollar.',
             ),
-            onChanged: (_) {
-              if (_rateError != null) {
-                setState(() {
-                  _rateError = null;
-                });
-              }
-            },
-          ),
-          const SizedBox(height: 16),
-          PrimaryButton(
-            text: 'Save exchange rate',
-            busy: _savingRate,
-            onPressed: _savingRate
-                ? null
-                : () => _saveExchangeRate(setting, uid),
-          ),
-        ],
+            const SizedBox(height: 20),
+            TextField(
+              controller: _rateController,
+              focusNode: _rateFocusNode,
+              style: TextStyle(color: inputTextColor),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+              ],
+              decoration: InputDecoration(
+                labelText: 'CDF per 1 USD',
+                labelStyle: TextStyle(color: secondaryTextColor),
+                floatingLabelStyle: TextStyle(
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                prefixIcon: Icon(
+                  Icons.currency_exchange,
+                  color: secondaryTextColor,
+                ),
+                helperText: 'Example: 2800.50',
+                suffixText: 'CDF',
+                suffixStyle: TextStyle(color: secondaryTextColor),
+                errorText: _rateError,
+                border: const OutlineInputBorder(),
+              ),
+              onChanged: (_) {
+                if (_rateError != null) {
+                  setState(() {
+                    _rateError = null;
+                  });
+                }
+              },
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: PrimaryButton(
+                text: 'Save exchange rate',
+                busy: _savingRate,
+                onPressed: _savingRate
+                    ? null
+                    : () => _saveExchangeRate(setting, uid),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -255,39 +287,139 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         : 'system';
 
     return AppCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SectionHeader(
-            title: 'Appearance',
-            subtitle: 'Choose your preferred app theme.',
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SectionHeader(
+              title: 'Appearance',
+              subtitle: 'Choose your preferred app theme.',
+            ),
+            const SizedBox(height: 16),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                if (constraints.maxWidth < 360) {
+                  return Column(
+                    children: [
+                      _buildThemeOption(
+                        icon: Icons.light_mode_outlined,
+                        label: 'Light',
+                        value: 'light',
+                        selectedTheme: theme,
+                        setting: setting,
+                        uid: uid,
+                      ),
+                      const SizedBox(height: 8),
+                      _buildThemeOption(
+                        icon: Icons.dark_mode_outlined,
+                        label: 'Dark',
+                        value: 'dark',
+                        selectedTheme: theme,
+                        setting: setting,
+                        uid: uid,
+                      ),
+                      const SizedBox(height: 8),
+                      _buildThemeOption(
+                        icon: Icons.settings_suggest_outlined,
+                        label: 'System',
+                        value: 'system',
+                        selectedTheme: theme,
+                        setting: setting,
+                        uid: uid,
+                      ),
+                    ],
+                  );
+                }
+
+                return SizedBox(
+                  width: double.infinity,
+                  child: SegmentedButton<String>(
+                    showSelectedIcon: false,
+                    segments: const [
+                      ButtonSegment<String>(
+                        value: 'light',
+                        icon: Icon(Icons.light_mode_outlined),
+                        label: Text('Light'),
+                      ),
+                      ButtonSegment<String>(
+                        value: 'dark',
+                        icon: Icon(Icons.dark_mode_outlined),
+                        label: Text('Dark'),
+                      ),
+                      ButtonSegment<String>(
+                        value: 'system',
+                        icon: Icon(Icons.settings_suggest_outlined),
+                        label: Text('System'),
+                      ),
+                    ],
+                    selected: {theme},
+                    onSelectionChanged: (selection) {
+                      _saveTheme(setting, uid, selection.first);
+                    },
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildThemeOption({
+    required IconData icon,
+    required String label,
+    required String value,
+    required String selectedTheme,
+    required Setting setting,
+    required String uid,
+  }) {
+    final colors = Theme.of(context).colorScheme;
+    final selected = selectedTheme == value;
+
+    return Material(
+      color: selected ? colors.primaryContainer : colors.surfaceContainerLow,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => _saveTheme(setting, uid, value),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: selected ? colors.primary : colors.outlineVariant,
+            ),
           ),
-          const SizedBox(height: 12),
-          SegmentedButton<String>(
-            showSelectedIcon: false,
-            segments: const [
-              ButtonSegment<String>(
-                value: 'light',
-                icon: Icon(Icons.light_mode_outlined),
-                label: Text('Light'),
+          child: Row(
+            children: [
+              Icon(
+                icon,
+                color: selected ? colors.onPrimaryContainer : colors.onSurface,
               ),
-              ButtonSegment<String>(
-                value: 'dark',
-                icon: Icon(Icons.dark_mode_outlined),
-                label: Text('Dark'),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  label,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: selected
+                        ? colors.onPrimaryContainer
+                        : colors.onSurface,
+                  ),
+                ),
               ),
-              ButtonSegment<String>(
-                value: 'system',
-                icon: Icon(Icons.settings_suggest_outlined),
-                label: Text('System'),
-              ),
+              if (selected)
+                Icon(
+                  Icons.check_circle,
+                  size: 20,
+                  color: colors.onPrimaryContainer,
+                ),
             ],
-            selected: {theme},
-            onSelectionChanged: (selection) {
-              _saveTheme(setting, uid, selection.first);
-            },
           ),
-        ],
+        ),
       ),
     );
   }
@@ -352,17 +484,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
           )
         else ...[
-          if (archived.isNotEmpty)
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Show archived categories'),
-              value: _showArchived,
-              onChanged: (value) {
-                setState(() {
-                  _showArchived = value;
-                });
-              },
-            ),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Show archived categories'),
+            value: _showArchived,
+            onChanged: (value) {
+              setState(() {
+                _showArchived = value;
+              });
+            },
+          ),
           ...displayed.map(
             (category) => Padding(
               padding: const EdgeInsets.only(bottom: 12),
@@ -371,14 +502,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
         ],
         const SizedBox(height: 12),
-        PrimaryButton(
-          text: 'Add category',
-          onPressed: () {
-            showDialog<void>(
-              context: context,
-              builder: (_) => const CategoryDialog(),
-            );
-          },
+        SizedBox(
+          width: double.infinity,
+          child: PrimaryButton(
+            text: 'Add category',
+            onPressed: () {
+              showDialog<void>(
+                context: context,
+                builder: (_) => const CategoryDialog(),
+              );
+            },
+          ),
         ),
       ],
     );
@@ -396,6 +530,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
@@ -417,6 +552,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         category.name.isEmpty
                             ? 'Unnamed category'
                             : category.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       const SizedBox(height: 3),
@@ -442,34 +579,67 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ],
             ),
             const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    icon: const Icon(Icons.edit_outlined, size: 18),
-                    label: const Text('Edit'),
-                    onPressed: () {
-                      showDialog<void>(
-                        context: context,
-                        builder: (_) => CategoryDialog(category: category),
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    icon: Icon(
-                      category.archived
-                          ? Icons.unarchive_outlined
-                          : Icons.archive_outlined,
-                      size: 18,
+            LayoutBuilder(
+              builder: (context, constraints) {
+                if (constraints.maxWidth < 320) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      OutlinedButton.icon(
+                        icon: const Icon(Icons.edit_outlined, size: 18),
+                        label: const Text('Edit'),
+                        onPressed: () {
+                          showDialog<void>(
+                            context: context,
+                            builder: (_) => CategoryDialog(category: category),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                      OutlinedButton.icon(
+                        icon: Icon(
+                          category.archived
+                              ? Icons.unarchive_outlined
+                              : Icons.archive_outlined,
+                          size: 18,
+                        ),
+                        label: Text(category.archived ? 'Restore' : 'Archive'),
+                        onPressed: () => _toggleArchive(category, uid),
+                      ),
+                    ],
+                  );
+                }
+
+                return Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        icon: const Icon(Icons.edit_outlined, size: 18),
+                        label: const Text('Edit'),
+                        onPressed: () {
+                          showDialog<void>(
+                            context: context,
+                            builder: (_) => CategoryDialog(category: category),
+                          );
+                        },
+                      ),
                     ),
-                    label: Text(category.archived ? 'Restore' : 'Archive'),
-                    onPressed: () => _toggleArchive(category, uid),
-                  ),
-                ),
-              ],
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        icon: Icon(
+                          category.archived
+                              ? Icons.unarchive_outlined
+                              : Icons.archive_outlined,
+                          size: 18,
+                        ),
+                        label: Text(category.archived ? 'Restore' : 'Archive'),
+                        onPressed: () => _toggleArchive(category, uid),
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
           ],
         ),
@@ -505,52 +675,64 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final lockEnabled = ref.watch(appLockProvider);
 
     return AppCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SectionHeader(
-            title: 'App lock',
-            subtitle: 'Protect your app with a four-digit PIN.',
-          ),
-          const SizedBox(height: 8),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Enable app lock'),
-            subtitle: Text(
-              lockEnabled ? 'A PIN is configured.' : 'No PIN is configured.',
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SectionHeader(
+              title: 'App lock',
+              subtitle: 'Protect your app with a four-digit PIN.',
             ),
-            value: lockEnabled,
-            onChanged: (enabled) {
-              if (enabled) {
-                context.go(AppRoutes.pinSetup);
-              } else {
-                _confirmRemovePin(context);
-              }
-            },
-          ),
-          if (lockEnabled) ...[
-            const SizedBox(height: 8),
-            OutlinedButton.icon(
-              icon: const Icon(Icons.password),
-              label: const Text('Change PIN'),
-              onPressed: () => context.go(AppRoutes.pinSetup),
-            ),
-            const SizedBox(height: 8),
-            TextButton(
-              onPressed: () => _confirmForgotPin(context),
-              child: const Text(
-                'Forgot PIN? Sign out and reset app lock',
-                textAlign: TextAlign.center,
+            const SizedBox(height: 12),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Enable app lock'),
+              subtitle: Text(
+                lockEnabled ? 'A PIN is configured.' : 'No PIN is configured.',
               ),
+              value: lockEnabled,
+              onChanged: (enabled) {
+                if (enabled) {
+                  context.go(AppRoutes.pinSetup);
+                } else {
+                  _confirmRemovePin(context);
+                }
+              },
             ),
-          ] else ...[
-            const SizedBox(height: 8),
-            PrimaryButton(
-              text: 'Set up PIN',
-              onPressed: () => context.go(AppRoutes.pinSetup),
-            ),
+            if (lockEnabled) ...[
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  icon: const Icon(Icons.password),
+                  label: const Text('Change PIN'),
+                  onPressed: () => context.go(AppRoutes.pinSetup),
+                ),
+              ),
+              const SizedBox(height: 4),
+              SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  onPressed: () => _confirmForgotPin(context),
+                  child: const Text(
+                    'Forgot PIN? Sign out and reset app lock',
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+            ] else ...[
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: PrimaryButton(
+                  text: 'Set up PIN',
+                  onPressed: () => context.go(AppRoutes.pinSetup),
+                ),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
@@ -672,7 +854,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     } catch (_) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(this.context).showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Could not sign out. Please try again.')),
       );
     }
