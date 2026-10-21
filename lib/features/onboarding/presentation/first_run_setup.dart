@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:money_manager/app/error_reporter.dart';
 import 'package:money_manager/app/widgets/app_text_field.dart';
 import 'package:money_manager/app/widgets/auth_layout.dart';
+import 'package:money_manager/app/widgets/error_banner.dart';
 import 'package:money_manager/app/widgets/primary_button.dart';
 import 'package:money_manager/data/models/category.dart';
 import 'package:money_manager/data/models/setting.dart';
@@ -255,37 +256,7 @@ class _FirstRunSetupState extends ConsumerState<FirstRunSetup> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (_error != null) ...[
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.error
-                      .withValues(alpha: 0.1),
-                  border: Border.all(
-                    color: Theme.of(context).colorScheme.error
-                        .withValues(alpha: 0.5),
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.error_outline,
-                      color: Colors.red,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        _error!,
-                        style: const TextStyle(color: Colors.red, fontSize: 14),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-            ],
+            if (_error != null) ...[ErrorBanner(message: _error!)],
             AppTextField(
               controller: _rateCtrl,
               label: "Today's rate (1 USD = ? CDF)",

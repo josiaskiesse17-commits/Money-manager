@@ -241,10 +241,7 @@ class _ReportPreviewCard extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Preview',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-          ),
+          const SectionHeader(title: 'Preview'),
           const SizedBox(height: 8),
           Text('Period: ${range.label}'),
           const SizedBox(height: 8),

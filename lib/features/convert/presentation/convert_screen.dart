@@ -273,9 +273,9 @@ class _ConvertScreenState extends ConsumerState<ConvertScreen> {
                                 fontSize: 14,
                               ),
                               IconButton(
-                                icon: const Icon(
+                                icon: Icon(
                                   Icons.delete,
-                                  color: Colors.red,
+                                  color: Theme.of(context).colorScheme.error,
                                 ),
                                 onPressed: () async {
                                   await ref
