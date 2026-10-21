@@ -66,78 +66,92 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final uid = user?.uid ?? '';
 
     if (uid.isEmpty) {
-      return const ResponsiveBody(
-        child: Center(child: CircularProgressIndicator()),
+      return const Scaffold(
+        body: ResponsiveBody(
+          child: SafeArea(child: Center(child: CircularProgressIndicator())),
+        ),
       );
     }
 
     final settingsAsync = ref.watch(settingsProvider(uid));
     final categoriesAsync = ref.watch(categoryProvider(uid));
 
-    return ResponsiveBody(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.only(bottom: 32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SectionHeader(
-              title: 'Settings',
-              subtitle: 'Personalize your Money Manager experience.',
-            ),
-            const SizedBox(height: 20),
+    final width = MediaQuery.sizeOf(context).width;
+    final isPhone = width < 600;
 
-            settingsAsync.when(
-              loading: () =>
-                  const _LoadingCard(message: 'Loading your preferences…'),
-              error: (error, stackTrace) =>
-                  ErrorBanner(message: 'Could not load settings: $error'),
-              data: (setting) {
-                final effectiveSetting =
-                    setting ??
-                    const Setting(
-                      docId: 'main',
-                      usdToCdfRate: 280050,
-                      theme: 'light',
-                      displayMode: 'combined',
-                      onboarded: false,
+    return Scaffold(
+      body: ResponsiveBody(
+        maxWidth: width >= 900 ? 1040 : null,
+        padding: EdgeInsets.only(
+          left: isPhone ? 16 : 24,
+          top: 0,
+          right: isPhone ? 16 : 24,
+          bottom: isPhone ? 16 : 24,
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.only(bottom: 32),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SectionHeader(
+                  title: 'Settings',
+                  subtitle: 'Personalize your Money Manager experience.',
+                ),
+                const SizedBox(height: 20),
+
+                settingsAsync.when(
+                  loading: () =>
+                      const _LoadingCard(message: 'Loading your preferences…'),
+                  error: (error, stackTrace) =>
+                      ErrorBanner(message: 'Could not load settings: $error'),
+                  data: (setting) {
+                    final effectiveSetting =
+                        setting ??
+                        const Setting(
+                          docId: 'main',
+                          usdToCdfRate: 280050,
+                          theme: 'light',
+                          displayMode: 'combined',
+                          onboarded: false,
+                        );
+
+                    _syncRateController(uid, effectiveSetting);
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildExchangeRateCard(effectiveSetting, uid),
+                        const SizedBox(height: 20),
+                        _buildThemeCard(effectiveSetting, uid),
+                        const SizedBox(height: 24),
+                      ],
                     );
+                  },
+                ),
 
-                _syncRateController(uid, effectiveSetting);
+                categoriesAsync.when(
+                  loading: () =>
+                      const _LoadingCard(message: 'Loading categories…'),
+                  error: (error, stackTrace) =>
+                      ErrorBanner(message: 'Could not load categories: $error'),
+                  data: (categories) =>
+                      _buildCategoriesSection(context, categories, uid),
+                ),
 
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildExchangeRateCard(effectiveSetting, uid),
-                    const SizedBox(height: 20),
-                    _buildThemeCard(effectiveSetting, uid),
-                    const SizedBox(height: 24),
-                  ],
-                );
-              },
+                const SizedBox(height: 20),
+
+                _buildAppLockCard(context),
+
+                const SizedBox(height: 24),
+
+                SecondaryButton(
+                  text: 'Sign out',
+                  onPressed: () => _confirmSignOut(context),
+                ),
+              ],
             ),
-
-            categoriesAsync.when(
-              loading: () => const _LoadingCard(message: 'Loading categories…'),
-              error: (error, stackTrace) =>
-                  ErrorBanner(message: 'Could not load categories: $error'),
-              data: (categories) =>
-                  _buildCategoriesSection(context, categories, uid),
-            ),
-
-            const SizedBox(height: 20),
-
-            _buildAppLockCard(context),
-
-            const SizedBox(height: 24),
-
-            SizedBox(
-              width: double.infinity,
-              child: SecondaryButton(
-                text: 'Sign out',
-                onPressed: () => _confirmSignOut(context),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -180,15 +194,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
           const SizedBox(height: 16),
 
-          SizedBox(
-            width: double.infinity,
-            child: PrimaryButton(
-              text: 'Save exchange rate',
-              busy: _savingRate,
-              onPressed: _savingRate
-                  ? null
-                  : () => _saveExchangeRate(setting, uid),
-            ),
+          PrimaryButton(
+            text: 'Save exchange rate',
+            busy: _savingRate,
+            onPressed: _savingRate
+                ? null
+                : () => _saveExchangeRate(setting, uid),
           ),
         ],
       ),
@@ -262,33 +273,29 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             subtitle: 'Choose your preferred app theme.',
           ),
           const SizedBox(height: 12),
-
-          SizedBox(
-            width: double.infinity,
-            child: SegmentedButton<String>(
-              showSelectedIcon: false,
-              segments: const [
-                ButtonSegment<String>(
-                  value: 'light',
-                  icon: Icon(Icons.light_mode_outlined),
-                  label: Text('Light'),
-                ),
-                ButtonSegment<String>(
-                  value: 'dark',
-                  icon: Icon(Icons.dark_mode_outlined),
-                  label: Text('Dark'),
-                ),
-                ButtonSegment<String>(
-                  value: 'system',
-                  icon: Icon(Icons.settings_suggest_outlined),
-                  label: Text('System'),
-                ),
-              ],
-              selected: {theme},
-              onSelectionChanged: (selection) {
-                _saveTheme(setting, uid, selection.first);
-              },
-            ),
+          SegmentedButton<String>(
+            showSelectedIcon: false,
+            segments: const [
+              ButtonSegment<String>(
+                value: 'light',
+                icon: Icon(Icons.light_mode_outlined),
+                label: Text('Light'),
+              ),
+              ButtonSegment<String>(
+                value: 'dark',
+                icon: Icon(Icons.dark_mode_outlined),
+                label: Text('Dark'),
+              ),
+              ButtonSegment<String>(
+                value: 'system',
+                icon: Icon(Icons.settings_suggest_outlined),
+                label: Text('System'),
+              ),
+            ],
+            selected: {theme},
+            onSelectionChanged: (selection) {
+              _saveTheme(setting, uid, selection.first);
+            },
           ),
         ],
       ),
@@ -372,23 +379,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
 
           ...displayed.map(
-            (category) => _buildCategoryCard(context, category, uid),
+            (category) => Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _buildCategoryCard(context, category, uid),
+            ),
           ),
         ],
 
         const SizedBox(height: 12),
 
-        SizedBox(
-          width: double.infinity,
-          child: PrimaryButton(
-            text: 'Add category',
-            onPressed: () {
-              showDialog<void>(
-                context: context,
-                builder: (_) => const CategoryDialog(),
-              );
-            },
-          ),
+        PrimaryButton(
+          text: 'Add category',
+          onPressed: () {
+            showDialog<void>(
+              context: context,
+              builder: (_) => const CategoryDialog(),
+            );
+          },
         ),
       ],
     );
@@ -551,36 +558,27 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           if (lockEnabled) ...[
             const SizedBox(height: 8),
 
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                icon: const Icon(Icons.password),
-                label: const Text('Change PIN'),
-                onPressed: () => context.go(AppRoutes.pinSetup),
-              ),
+            OutlinedButton.icon(
+              icon: const Icon(Icons.password),
+              label: const Text('Change PIN'),
+              onPressed: () => context.go(AppRoutes.pinSetup),
             ),
 
             const SizedBox(height: 8),
 
-            SizedBox(
-              width: double.infinity,
-              child: TextButton(
-                onPressed: () => _confirmForgotPin(context),
-                child: const Text(
-                  'Forgot PIN? Sign out and reset app lock',
-                  textAlign: TextAlign.center,
-                ),
+            TextButton(
+              onPressed: () => _confirmForgotPin(context),
+              child: const Text(
+                'Forgot PIN? Sign out and reset app lock',
+                textAlign: TextAlign.center,
               ),
             ),
           ] else ...[
             const SizedBox(height: 8),
 
-            SizedBox(
-              width: double.infinity,
-              child: PrimaryButton(
-                text: 'Set up PIN',
-                onPressed: () => context.go(AppRoutes.pinSetup),
-              ),
+            PrimaryButton(
+              text: 'Set up PIN',
+              onPressed: () => context.go(AppRoutes.pinSetup),
             ),
           ],
         ],
