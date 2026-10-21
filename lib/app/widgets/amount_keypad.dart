@@ -123,12 +123,7 @@ class _AmountKeypadState extends State<AmountKeypad> {
       else
         _KeyData('C', _clear, icon: Icons.clear_rounded),
       _KeyData('0', () => _appendDigit(0)),
-      _KeyData(
-        '⌫',
-        _backspace,
-        icon: Icons.backspace_outlined,
-        isAction: true,
-      ),
+      _KeyData('⌫', _backspace, icon: Icons.backspace_outlined, isAction: true),
     ];
 
     return LayoutBuilder(
@@ -180,9 +175,7 @@ class _AmountKeypadState extends State<AmountKeypad> {
                           display,
                           style: theme.textTheme.headlineSmall?.copyWith(
                             fontWeight: FontWeight.w800,
-                            fontFeatures: const [
-                              FontFeature.tabularFigures(),
-                            ],
+                            fontFeatures: const [FontFeature.tabularFigures()],
                           ),
                         ),
                       ),
@@ -208,10 +201,7 @@ class _AmountKeypadState extends State<AmountKeypad> {
                     crossAxisSpacing: gap,
                     mainAxisExtent: math.max(
                       1.0,
-                      math.min(
-                        keyHeight,
-                        keyWidth / 0.8,
-                      ),
+                      math.min(keyHeight, keyWidth / 0.8),
                     ),
                   ),
                   itemBuilder: (context, index) {

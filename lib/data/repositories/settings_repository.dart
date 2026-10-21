@@ -27,9 +27,7 @@ class SettingsRepository {
 
   Future<void> saveSettings(String uid, Setting setting) async {
     if (uid.trim().isEmpty) {
-      final error = ArgumentError(
-        'Cannot save settings: user ID is empty.',
-      );
+      final error = ArgumentError('Cannot save settings: user ID is empty.');
 
       reportError(
         error,
@@ -40,10 +38,7 @@ class SettingsRepository {
     }
 
     try {
-      await settingsDoc(uid).set(
-        setting.toMap(),
-        SetOptions(merge: true),
-      );
+      await settingsDoc(uid).set(setting.toMap(), SetOptions(merge: true));
     } catch (error, stackTrace) {
       reportError(
         error,

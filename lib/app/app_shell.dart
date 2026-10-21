@@ -10,11 +10,7 @@ class AppShell extends StatefulWidget {
   final Widget child;
   final String currentRoute;
 
-  const AppShell({
-    super.key,
-    required this.child,
-    required this.currentRoute,
-  });
+  const AppShell({super.key, required this.child, required this.currentRoute});
 
   @override
   State<AppShell> createState() => _AppShellState();
@@ -155,10 +151,7 @@ class _AppShellState extends State<AppShell> {
     );
   }
 
-  void _handleSwipe({
-    required double distance,
-    required double velocity,
-  }) {
+  void _handleSwipe({required double distance, required double velocity}) {
     final isLongEnough = distance.abs() >= _minimumSwipeDistance;
     final isFastEnough = velocity.abs() >= _minimumSwipeVelocity;
 

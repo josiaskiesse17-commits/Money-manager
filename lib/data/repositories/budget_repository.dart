@@ -33,18 +33,15 @@ class BudgetRepository {
         .doc(uid)
         .collection('budgets')
         .snapshots()
-        .map(
-          (snapshot) =>
-              snapshot.docs.map(Budget.fromDocument).toList(),
-        );
+        .map((snapshot) => snapshot.docs.map(Budget.fromDocument).toList());
   }
 
   Future<void> saveBudget(String uid, Budget budget) async {
     try {
-      await _budgetDoc(uid, budget.categoryId).set(
-        budget.toMap(),
-        SetOptions(merge: true),
-      );
+      await _budgetDoc(
+        uid,
+        budget.categoryId,
+      ).set(budget.toMap(), SetOptions(merge: true));
     } catch (error, stackTrace) {
       reportError(error, userMessage: 'Failed to save budget');
       Error.throwWithStackTrace(error, stackTrace);

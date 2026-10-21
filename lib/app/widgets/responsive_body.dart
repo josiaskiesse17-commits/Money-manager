@@ -31,13 +31,8 @@ class ResponsiveBody extends StatelessWidget {
         padding: contentPadding,
         child: Center(
           child: ConstrainedBox(
-            constraints: BoxConstraints(
-              maxWidth: contentMaxWidth,
-            ),
-            child: SizedBox(
-              width: double.infinity,
-              child: child,
-            ),
+            constraints: BoxConstraints(maxWidth: contentMaxWidth),
+            child: SizedBox(width: double.infinity, child: child),
           ),
         ),
       ),

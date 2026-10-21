@@ -22,9 +22,7 @@ class BudgetsScreen extends ConsumerWidget {
 
     if (uid == null || uid.isEmpty) {
       return const Scaffold(
-        body: Center(
-          child: Text('Please sign in to manage your budgets.'),
-        ),
+        body: Center(child: Text('Please sign in to manage your budgets.')),
       );
     }
 
@@ -81,18 +79,19 @@ class BudgetsScreen extends ConsumerWidget {
                                 },
                               ),
                               data: (settings) {
-                                final expenseCategories = categories
-                                    .where(
-                                      (category) =>
-                                          category.isExpense &&
-                                          !category.archived,
-                                    )
-                                    .toList()
-                                  ..sort(
-                                    (a, b) => a.name.toLowerCase().compareTo(
-                                          b.name.toLowerCase(),
-                                        ),
-                                  );
+                                final expenseCategories =
+                                    categories
+                                        .where(
+                                          (category) =>
+                                              category.isExpense &&
+                                              !category.archived,
+                                        )
+                                        .toList()
+                                      ..sort(
+                                        (a, b) => a.name
+                                            .toLowerCase()
+                                            .compareTo(b.name.toLowerCase()),
+                                      );
 
                                 final budgetByCategory = <String, Budget>{
                                   for (final budget in budgets)
@@ -117,8 +116,7 @@ class BudgetsScreen extends ConsumerWidget {
                                 final summaries = expenseCategories.map((
                                   category,
                                 ) {
-                                  final budget =
-                                      budgetByCategory[category.id];
+                                  final budget = budgetByCategory[category.id];
 
                                   final currency = _validCurrency(
                                     budget?.currency,
@@ -135,9 +133,7 @@ class BudgetsScreen extends ConsumerWidget {
                                             !transaction.date.isBefore(
                                               monthStart,
                                             ) &&
-                                            transaction.date.isBefore(
-                                              monthEnd,
-                                            ),
+                                            transaction.date.isBefore(monthEnd),
                                       )
                                       .fold<int>(
                                         0,
@@ -154,8 +150,7 @@ class BudgetsScreen extends ConsumerWidget {
                                 }).toList();
 
                                 return Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     _OverviewSection(
                                       summaries: summaries,
@@ -176,9 +171,7 @@ class BudgetsScreen extends ConsumerWidget {
                                         Expanded(
                                           child: Text(
                                             'Category budgets',
-                                            style: theme
-                                                .textTheme
-                                                .titleLarge
+                                            style: theme.textTheme.titleLarge
                                                 ?.copyWith(
                                                   fontWeight: FontWeight.w700,
                                                 ),
@@ -275,8 +268,7 @@ class BudgetsScreen extends ConsumerWidget {
 
   Widget _buildMonthBanner(BuildContext context, DateTime month) {
     final theme = Theme.of(context);
-    final monthLabel =
-        '${_monthName(month.month)} ${month.year}';
+    final monthLabel = '${_monthName(month.month)} ${month.year}';
 
     return Container(
       width: double.infinity,
@@ -366,10 +358,7 @@ class BudgetsScreen extends ConsumerWidget {
   }) {
     return showDialog<void>(
       context: context,
-      builder: (_) => BudgetDialog(
-        budget: budget,
-        category: category,
-      ),
+      builder: (_) => BudgetDialog(budget: budget, category: category),
     );
   }
 }
@@ -405,10 +394,7 @@ class _BudgetSummary {
 }
 
 class _OverviewSection extends StatelessWidget {
-  const _OverviewSection({
-    required this.summaries,
-    required this.currency,
-  });
+  const _OverviewSection({required this.summaries, required this.currency});
 
   final List<_BudgetSummary> summaries;
   final String currency;
@@ -434,11 +420,13 @@ class _OverviewSection extends StatelessWidget {
       (total, item) => total + item.spent,
     );
 
-    final budgetedCount =
-        currencySummaries.where((item) => item.budget != null).length;
+    final budgetedCount = currencySummaries
+        .where((item) => item.budget != null)
+        .length;
 
-    final overBudgetCount =
-        currencySummaries.where((item) => item.isOverBudget).length;
+    final overBudgetCount = currencySummaries
+        .where((item) => item.isOverBudget)
+        .length;
 
     final progress = totalLimit > 0
         ? (totalSpent / totalLimit).clamp(0.0, 1.0)
@@ -498,11 +486,7 @@ class _OverviewSection extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 5),
-          AmountText(
-            amount: totalSpent,
-            currency: currency,
-            fontSize: 30,
-          ),
+          AmountText(amount: totalSpent, currency: currency, fontSize: 30),
           const SizedBox(height: 18),
           Row(
             children: [
@@ -517,9 +501,7 @@ class _OverviewSection extends StatelessWidget {
               Expanded(
                 child: _OverviewMetric(
                   label: 'Remaining',
-                  amount: totalLimit > totalSpent
-                      ? totalLimit - totalSpent
-                      : 0,
+                  amount: totalLimit > totalSpent ? totalLimit - totalSpent : 0,
                   currency: currency,
                 ),
               ),
@@ -531,8 +513,7 @@ class _OverviewSection extends StatelessWidget {
             child: LinearProgressIndicator(
               value: progress,
               minHeight: 8,
-              backgroundColor:
-                  theme.colorScheme.surfaceContainerHighest,
+              backgroundColor: theme.colorScheme.surfaceContainerHighest,
               valueColor: AlwaysStoppedAnimation<Color>(color),
             ),
           ),
@@ -544,8 +525,8 @@ class _OverviewSection extends StatelessWidget {
                   totalLimit <= 0
                       ? 'No budget limits set'
                       : totalSpent > totalLimit
-                          ? 'You are over budget'
-                          : 'Budget usage',
+                      ? 'You are over budget'
+                      : 'Budget usage',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -614,21 +595,14 @@ class _OverviewMetric extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 5),
-        AmountText(
-          amount: amount,
-          currency: currency,
-          fontSize: 17,
-        ),
+        AmountText(amount: amount, currency: currency, fontSize: 17),
       ],
     );
   }
 }
 
 class _BudgetCard extends StatelessWidget {
-  const _BudgetCard({
-    required this.summary,
-    required this.onEdit,
-  });
+  const _BudgetCard({required this.summary, required this.onEdit});
 
   final _BudgetSummary summary;
   final VoidCallback onEdit;
@@ -645,10 +619,10 @@ class _BudgetCard extends StatelessWidget {
     final statusText = !isConfigured
         ? 'Not set'
         : summary.limit <= 0
-            ? 'No limit'
-            : summary.isOverBudget
-                ? 'Over budget'
-                : '${summary.percentage}% used';
+        ? 'No limit'
+        : summary.isOverBudget
+        ? 'Over budget'
+        : '${summary.percentage}% used';
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -778,8 +752,7 @@ class _BudgetCard extends StatelessWidget {
               child: LinearProgressIndicator(
                 value: summary.progress,
                 minHeight: 7,
-                backgroundColor:
-                    theme.colorScheme.surfaceContainerHighest,
+                backgroundColor: theme.colorScheme.surfaceContainerHighest,
                 valueColor: AlwaysStoppedAnimation<Color>(statusColor),
               ),
             ),
@@ -788,9 +761,7 @@ class _BudgetCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    summary.isOverBudget
-                        ? 'Exceeded by'
-                        : 'Remaining',
+                    summary.isOverBudget ? 'Exceeded by' : 'Remaining',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -844,10 +815,7 @@ class _LoadingState extends StatelessWidget {
 }
 
 class _ErrorState extends StatelessWidget {
-  const _ErrorState({
-    required this.message,
-    required this.onRetry,
-  });
+  const _ErrorState({required this.message, required this.onRetry});
 
   final String message;
   final VoidCallback onRetry;
@@ -897,10 +865,7 @@ class _EmptyState extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        horizontal: 24,
-        vertical: 36,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(20),

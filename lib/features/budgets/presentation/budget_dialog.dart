@@ -465,9 +465,9 @@ class _BudgetDialogState extends ConsumerState<BudgetDialog> {
                                 onTap: _saving
                                     ? null
                                     : () => setState(() {
-                                          _currency = 'CDF';
-                                          _error = null;
-                                        }),
+                                        _currency = 'CDF';
+                                        _error = null;
+                                      }),
                               ),
                             ),
                             const SizedBox(width: 5),
@@ -479,9 +479,9 @@ class _BudgetDialogState extends ConsumerState<BudgetDialog> {
                                 onTap: _saving
                                     ? null
                                     : () => setState(() {
-                                          _currency = 'USD';
-                                          _error = null;
-                                        }),
+                                        _currency = 'USD';
+                                        _error = null;
+                                      }),
                               ),
                             ),
                           ],

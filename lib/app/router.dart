@@ -63,10 +63,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: AppRoutes.home,
-        builder: (_, _) => AppShell(
-          currentRoute: AppRoutes.home,
-          child: const HomeScreen(),
-        ),
+        builder: (_, _) =>
+            AppShell(currentRoute: AppRoutes.home, child: const HomeScreen()),
       ),
       GoRoute(
         path: AppRoutes.budgets,
@@ -82,10 +80,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           child: const ChartsScreen(),
         ),
       ),
-      GoRoute(
-        path: AppRoutes.reports,
-        builder: (_, _) => const ReportScreen(),
-      ),
+      GoRoute(path: AppRoutes.reports, builder: (_, _) => const ReportScreen()),
       GoRoute(
         path: AppRoutes.settings,
         builder: (_, _) => AppShell(

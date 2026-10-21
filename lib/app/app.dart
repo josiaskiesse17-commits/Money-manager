@@ -125,8 +125,7 @@ class _LockScreenContent extends ConsumerStatefulWidget {
   const _LockScreenContent();
 
   @override
-  ConsumerState<_LockScreenContent> createState() =>
-      _LockScreenContentState();
+  ConsumerState<_LockScreenContent> createState() => _LockScreenContentState();
 }
 
 class _LockScreenContentState extends ConsumerState<_LockScreenContent> {
@@ -281,17 +280,15 @@ class _LockScreenContentState extends ConsumerState<_LockScreenContent> {
                   const SizedBox(height: 24),
                   Text(
                     'Money Manager',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                    style: Theme.of(context).textTheme.headlineSmall
+                        ?.copyWith(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     'Enter your PIN to continue.',
                     textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                        ),
+                    style: Theme.of(context).textTheme.bodyLarge
+                        ?.copyWith(color: colorScheme.onSurfaceVariant),
                   ),
                   if (_error != null) ...[
                     const SizedBox(height: 20),
@@ -350,10 +347,7 @@ class _LockScreenContentState extends ConsumerState<_LockScreenContent> {
                     maxLength: 4,
                     textAlign: TextAlign.center,
                     enabled: !_authenticating,
-                    style: const TextStyle(
-                      fontSize: 24,
-                      letterSpacing: 8,
-                    ),
+                    style: const TextStyle(fontSize: 24, letterSpacing: 8),
                     decoration: const InputDecoration(
                       labelText: 'Four-digit PIN',
                       counterText: '',
@@ -376,9 +370,7 @@ class _LockScreenContentState extends ConsumerState<_LockScreenContent> {
                           ? const SizedBox(
                               height: 20,
                               width: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                              ),
+                              child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : const Text('Unlock'),
                     ),
@@ -389,8 +381,7 @@ class _LockScreenContentState extends ConsumerState<_LockScreenContent> {
                       width: double.infinity,
                       child: SecondaryButton(
                         text: 'Use biometrics',
-                        onPressed:
-                            _authenticating ? null : _tryBiometrics,
+                        onPressed: _authenticating ? null : _tryBiometrics,
                       ),
                     ),
                   ],

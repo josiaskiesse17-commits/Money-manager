@@ -21,8 +21,7 @@ class TransactionsScreen extends ConsumerStatefulWidget {
   const TransactionsScreen({super.key});
 
   @override
-  ConsumerState<TransactionsScreen> createState() =>
-      _TransactionsScreenState();
+  ConsumerState<TransactionsScreen> createState() => _TransactionsScreenState();
 }
 
 class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
@@ -48,9 +47,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
 
     if (uid.isEmpty) {
       return const Scaffold(
-        body: SafeArea(
-          child: Center(child: CircularProgressIndicator()),
-        ),
+        body: SafeArea(child: Center(child: CircularProgressIndicator())),
       );
     }
 
@@ -251,10 +248,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                   isExpanded: true,
                   decoration: InputDecoration(
                     labelText: 'Year',
-                    prefixIcon: const Icon(
-                      Icons.event_outlined,
-                      size: 18,
-                    ),
+                    prefixIcon: const Icon(Icons.event_outlined, size: 18),
                     filled: true,
                     fillColor: Theme.of(context).colorScheme.surface,
                     contentPadding: const EdgeInsets.symmetric(
@@ -339,10 +333,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
             children: [
               searchField,
               const SizedBox(height: 10),
-              Align(
-                alignment: Alignment.centerRight,
-                child: filterButton,
-              ),
+              Align(alignment: Alignment.centerRight, child: filterButton),
             ],
           );
         }
@@ -381,9 +372,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
 
             return AnimatedPadding(
               duration: const Duration(milliseconds: 150),
-              padding: EdgeInsets.only(
-                bottom: media.viewInsets.bottom,
-              ),
+              padding: EdgeInsets.only(bottom: media.viewInsets.bottom),
               child: ConstrainedBox(
                 constraints: BoxConstraints(
                   maxHeight: media.size.height * 0.72,
@@ -611,10 +600,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     required List<Category> categories,
     required DateTime selectedMonth,
   }) {
-    final monthStart = DateTime(
-      selectedMonth.year,
-      selectedMonth.month,
-    );
+    final monthStart = DateTime(selectedMonth.year, selectedMonth.month);
 
     final nextMonthStart = DateTime(
       selectedMonth.year,
@@ -649,7 +635,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
         final type = transaction.type.toLowerCase();
         final currency = transaction.currency.toLowerCase();
 
-        final matchesSearch = note.contains(query) ||
+        final matchesSearch =
+            note.contains(query) ||
             categoryName.contains(query) ||
             type.contains(query) ||
             currency.contains(query);
@@ -658,8 +645,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       }
 
       return true;
-    }).toList()
-      ..sort((a, b) => b.date.compareTo(a.date));
+    }).toList()..sort((a, b) => b.date.compareTo(a.date));
   }
 
   Widget _buildTransactionList({
@@ -718,10 +704,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(
-            bottom: 12,
-            top: 2,
-          ),
+          padding: const EdgeInsets.only(bottom: 12, top: 2),
           child: Row(
             children: [
               Container(
@@ -763,9 +746,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
               return TransactionListItem(
                 transaction: transaction,
                 category: category,
-                onTap: () => _openTransactionSheet(
-                  transaction: transaction,
-                ),
+                onTap: () => _openTransactionSheet(transaction: transaction),
                 onDelete: () => _deleteTransaction(transaction, uid),
               );
             },
@@ -784,23 +765,16 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     });
   }
 
-  Future<void> _openTransactionSheet({
-    Transaction? transaction,
-  }) async {
+  Future<void> _openTransactionSheet({Transaction? transaction}) async {
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      builder: (_) => AddEditTransactionSheet(
-        transaction: transaction,
-      ),
+      builder: (_) => AddEditTransactionSheet(transaction: transaction),
     );
   }
 
-  Future<void> _deleteTransaction(
-    Transaction transaction,
-    String uid,
-  ) async {
+  Future<void> _deleteTransaction(Transaction transaction, String uid) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -834,25 +808,19 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     if (confirmed != true || !mounted) return;
 
     try {
-      await ref
-          .read(transactionProvider(uid).notifier)
-          .delete(transaction);
+      await ref.read(transactionProvider(uid).notifier).delete(transaction);
 
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Transaction deleted successfully.'),
-        ),
+        const SnackBar(content: Text('Transaction deleted successfully.')),
       );
     } catch (_) {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-            'Could not delete the transaction. Please try again.',
-          ),
+          content: Text('Could not delete the transaction. Please try again.'),
         ),
       );
     }
@@ -860,10 +828,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
 }
 
 class _TransactionFilters {
-  const _TransactionFilters({
-    required this.type,
-    required this.currency,
-  });
+  const _TransactionFilters({required this.type, required this.currency});
 
   final String type;
   final String currency;
@@ -916,13 +881,9 @@ class _FilterChoiceGroup extends StatelessWidget {
 
         return Expanded(
           child: Padding(
-            padding: EdgeInsets.only(
-              right: option.value == 'expense' ? 0 : 8,
-            ),
+            padding: EdgeInsets.only(right: option.value == 'expense' ? 0 : 8),
             child: Material(
-              color: selected
-                  ? colors.surface
-                  : colors.surfaceContainerLow,
+              color: selected ? colors.surface : colors.surfaceContainerLow,
               borderRadius: BorderRadius.circular(11),
               child: InkWell(
                 onTap: () => onSelected(option.value),
@@ -959,9 +920,7 @@ class _FilterChoiceGroup extends StatelessWidget {
                           symbol,
                           style: theme.textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.w800,
-                            color: selected
-                                ? accent
-                                : colors.onSurfaceVariant,
+                            color: selected ? accent : colors.onSurfaceVariant,
                           ),
                         ),
                       ),
@@ -1027,10 +986,7 @@ class _FilterCurrencyOption extends StatelessWidget {
         borderRadius: BorderRadius.circular(11),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 160),
-          padding: const EdgeInsets.symmetric(
-            horizontal: 5,
-            vertical: 9,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 9),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(11),
             border: Border.all(

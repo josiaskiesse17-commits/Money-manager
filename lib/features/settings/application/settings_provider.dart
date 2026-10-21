@@ -6,7 +6,7 @@ import 'package:money_manager/data/repositories/settings_repository.dart';
 
 class SettingsStateNotifier extends StateNotifier<AsyncValue<Setting?>> {
   SettingsStateNotifier(this._repo, this._uid)
-      : super(const AsyncValue.loading()) {
+    : super(const AsyncValue.loading()) {
     _load();
   }
 
@@ -17,14 +17,16 @@ class SettingsStateNotifier extends StateNotifier<AsyncValue<Setting?>> {
 
   Future<void> _load() async {
     try {
-      _subscription = _repo.watchSettings(_uid).listen(
-        (setting) {
-          state = AsyncValue.data(setting);
-        },
-        onError: (Object error, StackTrace stackTrace) {
-          state = AsyncValue.error(error, stackTrace);
-        },
-      );
+      _subscription = _repo
+          .watchSettings(_uid)
+          .listen(
+            (setting) {
+              state = AsyncValue.data(setting);
+            },
+            onError: (Object error, StackTrace stackTrace) {
+              state = AsyncValue.error(error, stackTrace);
+            },
+          );
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
     }
@@ -61,14 +63,11 @@ class SettingsStateNotifier extends StateNotifier<AsyncValue<Setting?>> {
   }
 }
 
-final settingsProvider = StateNotifierProvider.family<
-    SettingsStateNotifier,
-    AsyncValue<Setting?>,
-    String>(
-  (ref, uid) {
-    return SettingsStateNotifier(
-      ref.read(settingsRepositoryProvider),
-      uid,
-    );
-  },
-);
+final settingsProvider =
+    StateNotifierProvider.family<
+      SettingsStateNotifier,
+      AsyncValue<Setting?>,
+      String
+    >((ref, uid) {
+      return SettingsStateNotifier(ref.read(settingsRepositoryProvider), uid);
+    });
