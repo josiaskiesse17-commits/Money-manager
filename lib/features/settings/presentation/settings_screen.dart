@@ -112,7 +112,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         onboarded: false,
                       );
 
-                  _syncRateController(uid, effectiveSetting);
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (!mounted) return;
+                    _syncRateController(uid, effectiveSetting);
+                  });
 
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -583,9 +586,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
       ref.read(appLockRefreshProvider.notifier).state++;
 
-      ScaffoldMessenger.of(this.context).showSnackBar(
-        const SnackBar(content: Text('App lock disabled.')),
-      );
+      ScaffoldMessenger.of(this.context)
+          .showSnackBar(const SnackBar(content: Text('App lock disabled.')));
     } catch (_) {
       if (!mounted) return;
 

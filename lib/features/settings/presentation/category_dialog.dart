@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:money_manager/app/widgets/app_text_field.dart';
+import 'package:money_manager/app/widgets/error_banner.dart';
 import 'package:money_manager/app/widgets/primary_button.dart';
 import 'package:money_manager/app/widgets/secondary_button.dart';
-import 'package:money_manager/app/widgets/section_header.dart';
 import 'package:money_manager/data/models/category.dart';
 import 'package:money_manager/features/auth/application/auth_provider.dart';
 import 'package:money_manager/features/categories/application/category_provider.dart';
@@ -115,79 +115,121 @@ class _CategoryDialogState extends ConsumerState<CategoryDialog> {
   @override
   Widget build(BuildContext context) {
     final isEdit = _isEdit;
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
 
     return AlertDialog(
-      title: Text(isEdit ? 'Edit category' : 'Add category'),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+      contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+      actionsPadding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
+      title: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: colors.primaryContainer,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(
+              isEdit ? Icons.edit_note_rounded : Icons.add_circle_outline,
+              color: colors.onPrimaryContainer,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isEdit ? 'Edit category' : 'Add category',
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.4,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  isEdit
+                      ? 'Update your category details'
+                      : 'Organize your income and expenses.',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colors.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (_error != null) ...[
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.error
-                      .withValues(alpha: 0.1),
-                  border: Border.all(
-                    color: Theme.of(context).colorScheme.error
-                        .withValues(alpha: 0.5),
-                  ),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  _error!,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.error,
-                    fontSize: 12,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
+              ErrorBanner(message: _error!),
+              const SizedBox(height: 16),
             ],
-            const SectionHeader(title: 'Name'),
-            const SizedBox(height: 8),
+            _sectionLabel(context, 'Name'),
+            const SizedBox(height: 10),
             AppTextField(
               controller: _nameCtrl,
               label: 'Category name',
               helperText: 'e.g. Groceries, Salary',
               onChanged: (_) => setState(() => _error = null),
             ),
-            const SizedBox(height: 16),
-            const SectionHeader(title: 'Type'),
-            const SizedBox(height: 8),
+            const SizedBox(height: 24),
+            _sectionLabel(context, 'Type'),
+            const SizedBox(height: 10),
             Row(
               children: [
                 Expanded(
-                  child: FilterChip(
-                    label: const Text('Income'),
+                  child: _TypeCard(
+                    title: 'Income',
+                    subtitle: 'Money coming in',
+                    icon: Icons.trending_up_rounded,
                     selected: _type == 'income',
-                    onSelected: (_) => setState(() {
-                      _type = 'income';
-                      if (_iconCtrl.text.isEmpty) {
-                        _icon = _defaultIcons['income']!;
+                    accentColor: colors.primary,
+                    onTap: () {
+                      if (_type != 'income') {
+                        setState(() {
+                          _type = 'income';
+                          if (_iconCtrl.text.isEmpty) {
+                            _icon = _defaultIcons['income']!;
+                          }
+                        });
                       }
-                    }),
+                    },
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 12),
                 Expanded(
-                  child: FilterChip(
-                    label: const Text('Expense'),
+                  child: _TypeCard(
+                    title: 'Expense',
+                    subtitle: 'Money going out',
+                    icon: Icons.category_outlined,
                     selected: _type == 'expense',
-                    onSelected: (_) => setState(() {
-                      _type = 'expense';
-                      if (_iconCtrl.text.isEmpty) {
-                        _icon = _defaultIcons['expense']!;
+                    accentColor: colors.error,
+                    onTap: () {
+                      if (_type != 'expense') {
+                        setState(() {
+                          _type = 'expense';
+                          if (_iconCtrl.text.isEmpty) {
+                            _icon = _defaultIcons['expense']!;
+                          }
+                        });
                       }
-                    }),
+                    },
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            const SectionHeader(title: 'Icon'),
-            const SizedBox(height: 8),
+            const SizedBox(height: 24),
+            _sectionLabel(context, 'Icon'),
+            const SizedBox(height: 10),
             AppTextField(
               controller: _iconCtrl,
               label: 'Icon name',
@@ -197,9 +239,9 @@ class _CategoryDialogState extends ConsumerState<CategoryDialog> {
                 _error = null;
               }),
             ),
-            const SizedBox(height: 16),
-            const SectionHeader(title: 'Color'),
-            const SizedBox(height: 8),
+            const SizedBox(height: 24),
+            _sectionLabel(context, 'Color'),
+            const SizedBox(height: 10),
             Wrap(
               spacing: 8,
               runSpacing: 8,
@@ -215,10 +257,7 @@ class _CategoryDialogState extends ConsumerState<CategoryDialog> {
                       color: Color(c),
                       shape: BoxShape.circle,
                       border: selected
-                          ? Border.all(
-                              color: Theme.of(context).colorScheme.onSurface,
-                              width: 2,
-                            )
+                          ? Border.all(color: colors.onSurface, width: 2)
                           : null,
                     ),
                   ),
@@ -237,6 +276,106 @@ class _CategoryDialogState extends ConsumerState<CategoryDialog> {
           onPressed: _saving ? null : _saveCategory,
         ),
       ],
+    );
+  }
+
+  Widget _sectionLabel(BuildContext context, String title) {
+    final theme = Theme.of(context);
+    return Text(
+      title,
+      style: theme.textTheme.labelLarge?.copyWith(
+        color: theme.colorScheme.onSurfaceVariant,
+        fontWeight: FontWeight.w800,
+        letterSpacing: 1.0,
+      ),
+    );
+  }
+}
+
+class _TypeCard extends StatelessWidget {
+  const _TypeCard({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.selected,
+    required this.accentColor,
+    required this.onTap,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final bool selected;
+  final Color accentColor;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+
+    return Material(
+      color: selected
+          ? accentColor.withValues(alpha: 0.08)
+          : colors.surfaceContainerLow,
+      borderRadius: BorderRadius.circular(18),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: selected
+                  ? accentColor.withValues(alpha: 0.75)
+                  : colors.outlineVariant.withValues(alpha: 0.55),
+              width: selected ? 1.5 : 1,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: accentColor.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(icon, color: accentColor, size: 21),
+                  ),
+                  const Spacer(),
+                  Icon(
+                    selected
+                        ? Icons.check_circle_rounded
+                        : Icons.circle_outlined,
+                    color: selected ? accentColor : colors.outlineVariant,
+                    size: 21,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 13),
+              Text(
+                title,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                subtitle,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: colors.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

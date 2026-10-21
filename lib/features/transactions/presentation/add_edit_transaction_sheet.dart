@@ -487,7 +487,7 @@ class _AddEditTransactionSheetState
                             ),
                             const SizedBox(height: 14),
                             SizedBox(
-                              height: 340,
+                              height: 420,
                               child: AmountKeypad(
                                 key: ValueKey(_currency),
                                 currency: _currency,
