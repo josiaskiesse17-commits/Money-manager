@@ -123,13 +123,13 @@ class _LockScreenContentState extends ConsumerState<_LockScreenContent> {
 
   Future<void> _tryBiometrics() async {
     final notifier = ref.read(appLockProvider.notifier);
-    final ok = await notifier.authenticateWithBiometrics();
+    final ok = await notifier.unlockWithBiometrics();
     if (!mounted) return;
 
-    if (ok) {
-      notifier.unlockWithBiometrics();
-    } else {
-      setState(() => _error = 'Biometrics unavailable');
+    if (!ok) {
+      setState(
+        () => _error = 'Biometrics unavailable or authentication failed',
+      );
     }
   }
 

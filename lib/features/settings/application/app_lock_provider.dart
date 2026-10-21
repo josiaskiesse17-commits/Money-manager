@@ -8,16 +8,62 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:local_auth/local_auth.dart';
 
+/// Biometric authenticator callback used by [AppLockNotifier].
+typedef BiometricAuthenticator = Future<bool> Function();
+
+/// Abstract storage for PIN-related data.
+abstract class AppLockStorage {
+  Future<String?> read(String key);
+  Future<void> write(String key, String value);
+  Future<void> delete(String key);
+}
+
+/// Production storage backed by [FlutterSecureStorage].
+class _SecureStorageImpl implements AppLockStorage {
+  final FlutterSecureStorage _storage = FlutterSecureStorage();
+
+  @override
+  Future<String?> read(String key) async => _storage.read(key: key);
+
+  @override
+  Future<void> write(String key, String value) async =>
+      _storage.write(key: key, value: value);
+
+  @override
+  Future<void> delete(String key) async => _storage.delete(key: key);
+}
+
 /// App lock provider: manages PIN (salted SHA-256 hash) in secure storage.
 ///
 /// PIN is stored as salted hash in secure storage (device only).
 /// Never stored in plain text or in Firebase.
 class AppLockNotifier extends StateNotifier<bool> {
-  AppLockNotifier(this._storage) : super(false) {
+  AppLockNotifier(
+    this._storage, {
+    BiometricAuthenticator? biometricAuthenticator,
+  }) : super(false) {
+    _biometricAuthenticator = biometricAuthenticator ?? _defaultBiometricAuth;
     _load();
   }
 
-  final FlutterSecureStorage _storage;
+  final AppLockStorage _storage;
+  late BiometricAuthenticator _biometricAuthenticator;
+
+  static Future<bool> _defaultBiometricAuth() async {
+    if (kIsWeb) return false;
+    try {
+      final auth = LocalAuthentication();
+      return await auth.authenticate(
+        localizedReason: 'Authenticate to unlock Money Manager',
+        options: const AuthenticationOptions(
+          stickyAuth: true,
+          biometricOnly: true,
+        ),
+      );
+    } catch (e) {
+      return false;
+    }
+  }
 
   static const _pinKey = 'app_lock_pin';
   static const _saltKey = 'app_lock_salt';
@@ -30,7 +76,7 @@ class AppLockNotifier extends StateNotifier<bool> {
   bool get isLocked => _isLocked;
 
   void _load() async {
-    final pin = await _storage.read(key: _pinKey);
+    final pin = await _storage.read(_pinKey);
     _hasPin = pin != null && pin.isNotEmpty;
     state = _hasPin;
   }
@@ -55,16 +101,16 @@ class AppLockNotifier extends StateNotifier<bool> {
   Future<void> setupPin(String pin) async {
     final salt = generateSalt();
     final hash = hashPin(pin, salt);
-    await _storage.write(key: _pinKey, value: hash);
-    await _storage.write(key: _saltKey, value: salt);
+    await _storage.write(_pinKey, hash);
+    await _storage.write(_saltKey, salt);
     _hasPin = true;
     state = true;
   }
 
   /// Verifies a PIN against the stored hash.
   Future<bool> verifyPin(String pin) async {
-    final storedHash = await _storage.read(key: _pinKey);
-    final salt = await _storage.read(key: _saltKey);
+    final storedHash = await _storage.read(_pinKey);
+    final salt = await _storage.read(_saltKey);
     if (storedHash == null || salt == null) return false;
     final hash = hashPin(pin, salt);
     return hash == storedHash;
@@ -72,8 +118,8 @@ class AppLockNotifier extends StateNotifier<bool> {
 
   /// Removes the PIN (used for forgot PIN flow).
   Future<void> removePin() async {
-    await _storage.delete(key: _pinKey);
-    await _storage.delete(key: _saltKey);
+    await _storage.delete(_pinKey);
+    await _storage.delete(_saltKey);
     _hasPin = false;
     state = false;
     _isLocked = false;
@@ -101,8 +147,13 @@ class AppLockNotifier extends StateNotifier<bool> {
   }
 
   /// Unlocks the app after successful biometric authentication.
-  void unlockWithBiometrics() {
-    _isLocked = false;
+  /// Returns true if biometric authentication succeeded and the app is unlocked.
+  Future<bool> unlockWithBiometrics() async {
+    final ok = await authenticateWithBiometrics();
+    if (ok) {
+      _isLocked = false;
+    }
+    return ok;
   }
 
   /// Records that the app went to the background.
@@ -122,16 +173,8 @@ class AppLockNotifier extends StateNotifier<bool> {
   /// Attempts biometric authentication if available.
   /// Returns false on web or if biometrics is not available.
   Future<bool> authenticateWithBiometrics() async {
-    if (kIsWeb) return false;
     try {
-      final auth = LocalAuthentication();
-      return await auth.authenticate(
-        localizedReason: 'Authenticate to unlock Money Manager',
-        options: const AuthenticationOptions(
-          stickyAuth: true,
-          biometricOnly: true,
-        ),
-      );
+      return await _biometricAuthenticator();
     } catch (e) {
       return false;
     }
@@ -139,5 +182,5 @@ class AppLockNotifier extends StateNotifier<bool> {
 }
 
 final appLockProvider = StateNotifierProvider<AppLockNotifier, bool>((ref) {
-  return AppLockNotifier(FlutterSecureStorage());
+  return AppLockNotifier(_SecureStorageImpl());
 });

@@ -5,7 +5,6 @@ import 'package:money_manager/app/widgets/app_card.dart';
 import 'package:money_manager/app/widgets/amount_text.dart';
 import 'package:money_manager/app/widgets/empty_state.dart';
 import 'package:money_manager/app/widgets/error_banner.dart';
-import 'package:money_manager/app/widgets/primary_button.dart';
 import 'package:money_manager/app/widgets/responsive_body.dart';
 import 'package:money_manager/app/widgets/secondary_button.dart';
 import 'package:money_manager/app/widgets/section_header.dart';
@@ -52,7 +51,6 @@ class BudgetsScreen extends ConsumerWidget {
                   builder: (_) => const BudgetDialog(),
                 ),
               ),
-              PrimaryButton(text: 'Save all', onPressed: () {}),
             ],
           ),
           const SizedBox(height: 16),

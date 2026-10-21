@@ -12,6 +12,7 @@ import 'package:money_manager/app/widgets/section_header.dart';
 import 'package:money_manager/data/models/transaction.dart';
 import 'package:money_manager/features/auth/application/auth_provider.dart';
 import 'package:money_manager/features/categories/application/category_provider.dart';
+import 'package:money_manager/features/settings/application/settings_provider.dart';
 import 'package:money_manager/features/transactions/application/transaction_provider.dart';
 
 /// Add/Edit transaction modal bottom sheet.
@@ -119,7 +120,9 @@ class _AddEditTransactionSheetState
       categoryId: _categoryId!,
       date: _date,
       note: _noteCtrl.text.isEmpty ? null : _noteCtrl.text,
-      rateAtEntry: 280050,
+      rateAtEntry: widget.transaction != null
+          ? widget.transaction!.rateAtEntry
+          : _rateAtEntryFromSettings(ref, uid),
       createdAt: widget.transaction?.createdAt ?? DateTime.now(),
       updatedAt: DateTime.now(),
     );
@@ -139,6 +142,21 @@ class _AddEditTransactionSheetState
             .showSnackBar(SnackBar(content: Text('Failed to save: $e')));
       }
     }
+  }
+
+  int _rateAtEntryFromSettings(WidgetRef ref, String uid) {
+    final settingsAsync = ref.read(settingsProvider(uid));
+    if (settingsAsync is AsyncLoading) {
+      throw Exception('Settings are still loading. Please try again.');
+    }
+    if (settingsAsync is AsyncError) {
+      throw Exception('Failed to load exchange rate settings.');
+    }
+    final setting = settingsAsync.value;
+    if (setting == null) {
+      throw Exception('Settings not configured. Complete first-run setup.');
+    }
+    return setting.usdToCdfRate;
   }
 
   Future<void> _delete(WidgetRef ref, String uid) async {
