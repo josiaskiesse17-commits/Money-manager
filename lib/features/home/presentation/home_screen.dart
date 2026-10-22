@@ -13,11 +13,15 @@ import 'package:money_manager/app/widgets/responsive_body.dart';
 import 'package:money_manager/app/widgets/section_header.dart';
 import 'package:money_manager/app/widgets/transaction_list_item.dart';
 import 'package:money_manager/data/models/category.dart';
+import 'package:money_manager/data/models/setting.dart';
 import 'package:money_manager/data/models/transaction.dart';
 import 'package:money_manager/data/models/wallet.dart';
 import 'package:money_manager/features/auth/application/auth_provider.dart';
 import 'package:money_manager/features/budgets/application/budget_provider.dart';
 import 'package:money_manager/features/categories/application/category_provider.dart';
+import 'package:money_manager/features/home/application/home_totals.dart';
+import 'package:money_manager/features/home/presentation/widgets/combined_total_card.dart';
+import 'package:money_manager/features/home/presentation/widgets/display_mode_toggle.dart';
 import 'package:money_manager/features/settings/application/settings_provider.dart';
 import 'package:money_manager/features/transactions/application/transaction_provider.dart';
 import 'package:money_manager/features/wallets/application/wallet_provider.dart';
@@ -67,24 +71,14 @@ class HomeScreen extends ConsumerWidget {
                     data: (budgets) => categoriesAsync.when(
                       data: (categories) => settingsAsync.when(
                         data: (setting) {
-                          final filtered = transactions.where((t) {
-                            final monthStart = DateTime(
-                              selectedMonth.year,
-                              selectedMonth.month,
-                              1,
-                            );
-                            final monthEnd = DateTime(
-                              selectedMonth.year,
-                              selectedMonth.month + 1,
-                              1,
-                            );
-
-                            return t.date.isAfter(monthStart) &&
-                                t.date.isBefore(monthEnd);
-                          }).toList();
+                          final filtered = transactions
+                              .where((t) => _inMonth(t.date, selectedMonth))
+                              .toList();
 
                           return _buildForWidth(
                             context,
+                            uid,
+                            setting,
                             wallets,
                             filtered,
                             budgets,
@@ -134,9 +128,18 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
+  /// True when [date] falls inside the month of [month] (start inclusive).
+  static bool _inMonth(DateTime date, DateTime month) {
+    final monthStart = DateTime(month.year, month.month, 1);
+    final monthEnd = DateTime(month.year, month.month + 1, 1);
+    return !date.isBefore(monthStart) && date.isBefore(monthEnd);
+  }
+
   /// Single-column layout on phones, two columns on wide screens.
   Widget _buildForWidth(
     BuildContext context,
+    String uid,
+    Setting? setting,
     List<Wallet> wallets,
     List<Transaction> transactions,
     List<dynamic> budgets,
@@ -144,9 +147,10 @@ class HomeScreen extends ConsumerWidget {
     DateTime selectedMonth,
   ) {
     final width = MediaQuery.sizeOf(context).width;
+    final displayMode = setting?.displayMode ?? 'combined';
 
-    final balances = _buildWalletBalances(wallets);
-    final summary = _buildMonthSummary(transactions);
+    final balances = _buildBalancesSection(uid, setting, wallets, displayMode);
+    final summary = _buildMonthSummary(transactions, displayMode);
     final alerts = _buildBudgetAlerts(
       budgets,
       transactions,
@@ -260,81 +264,112 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildWalletBalances(List<dynamic> wallets) {
-    final cdfWallet = wallets.whereType<Wallet>().firstWhereOrNull(
-      (wallet) => wallet.currency == 'CDF',
-    );
-    final usdWallet = wallets.whereType<Wallet>().firstWhereOrNull(
-      (wallet) => wallet.currency == 'USD',
-    );
+  /// Display toggle, combined total and wallet cards.
+  /// The toggle and total need the settings document; without it
+  /// (not onboarded yet) only the wallet cards are shown.
+  Widget _buildBalancesSection(
+    String uid,
+    Setting? setting,
+    List<Wallet> wallets,
+    String displayMode,
+  ) {
+    final cdfWallet = wallets.firstWhereOrNull((w) => w.currency == 'CDF');
+    final usdWallet = wallets.firstWhereOrNull((w) => w.currency == 'USD');
 
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: AppCard(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'CDF',
-                  style: TextStyle(fontSize: 14, color: Colors.grey),
-                ),
-                const SizedBox(height: 8),
-                AmountText(
-                  amount: cdfWallet?.balance ?? 0,
-                  currency: 'CDF',
-                  fontSize: 24,
-                  fontWeight: FontWeight.w700,
-                ),
-              ],
-            ),
+        if (setting != null) ...[
+          DisplayModeToggle(uid: uid, setting: setting),
+          const SizedBox(height: 12),
+          CombinedTotalCard(
+            cdfWallet: cdfWallet,
+            usdWallet: usdWallet,
+            rateScaled: setting.usdToCdfRate,
+            displayMode: displayMode,
           ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: AppCard(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'USD',
-                  style: TextStyle(fontSize: 14, color: Colors.grey),
-                ),
-                const SizedBox(height: 8),
-                AmountText(
-                  amount: usdWallet?.balance ?? 0,
-                  currency: 'USD',
-                  fontSize: 24,
-                  fontWeight: FontWeight.w700,
-                ),
-              ],
-            ),
-          ),
-        ),
+          const SizedBox(height: 12),
+        ],
+        _buildWalletBalances(cdfWallet, usdWallet, displayMode),
       ],
     );
   }
 
-  Widget _buildMonthSummary(List<Transaction> transactions) {
-    final income = transactions
-        .where((transaction) => transaction.type == 'income')
-        .fold<int>(0, (sum, transaction) => sum + transaction.amount);
-
-    final expense = transactions
-        .where((transaction) => transaction.type == 'expense')
-        .fold<int>(0, (sum, transaction) => sum + transaction.amount);
-
-    final net = income - expense;
+  Widget _buildWalletBalances(
+    Wallet? cdfWallet,
+    Wallet? usdWallet,
+    String displayMode,
+  ) {
+    final showCdf = displayMode != 'usd';
+    final showUsd = displayMode != 'cdf';
 
     return Row(
       children: [
-        Expanded(child: _statTile('Income', income, 'CDF', Colors.green)),
+        if (showCdf)
+          Expanded(child: _walletCard('CDF', cdfWallet?.balance ?? 0)),
+        if (showCdf && showUsd) const SizedBox(width: 12),
+        if (showUsd)
+          Expanded(child: _walletCard('USD', usdWallet?.balance ?? 0)),
+      ],
+    );
+  }
+
+  Widget _walletCard(String currency, int balance) {
+    return AppCard(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            currency,
+            style: const TextStyle(fontSize: 14, color: Colors.grey),
+          ),
+          const SizedBox(height: 8),
+          AmountText(
+            amount: balance,
+            currency: currency,
+            fontSize: 24,
+            fontWeight: FontWeight.w700,
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Month income/expense/net in the display currency, converting each
+  /// transaction with its own rateAtEntry.
+  Widget _buildMonthSummary(
+    List<Transaction> transactions,
+    String displayMode,
+  ) {
+    final summary = monthSummary(
+      transactions: transactions,
+      target: targetCurrencyFor(displayMode),
+    );
+
+    return Row(
+      children: [
+        Expanded(
+          child: _statTile(
+            'Income',
+            summary.income,
+            summary.currency,
+            Colors.green,
+          ),
+        ),
         const SizedBox(width: 8),
-        Expanded(child: _statTile('Expense', expense, 'CDF', Colors.red)),
+        Expanded(
+          child: _statTile(
+            'Expense',
+            summary.expense,
+            summary.currency,
+            Colors.red,
+          ),
+        ),
         const SizedBox(width: 8),
-        Expanded(child: _statTile('Net', net, 'CDF', Colors.blue)),
+        Expanded(
+          child: _statTile('Net', summary.net, summary.currency, Colors.blue),
+        ),
       ],
     );
   }
@@ -365,9 +400,6 @@ class HomeScreen extends ConsumerWidget {
     List<Category> categories,
     DateTime selectedMonth,
   ) {
-    final monthStart = DateTime(selectedMonth.year, selectedMonth.month, 1);
-    final monthEnd = DateTime(selectedMonth.year, selectedMonth.month + 1, 1);
-
     final alerts = <String>[];
 
     for (final budget in budgets) {
@@ -385,8 +417,7 @@ class HomeScreen extends ConsumerWidget {
                 transaction.type == 'expense' &&
                 transaction.categoryId == budget.categoryId &&
                 transaction.currency == budget.currency &&
-                transaction.date.isAfter(monthStart) &&
-                transaction.date.isBefore(monthEnd),
+                _inMonth(transaction.date, selectedMonth),
           )
           .fold<int>(0, (sum, transaction) => sum + transaction.amount);
 
