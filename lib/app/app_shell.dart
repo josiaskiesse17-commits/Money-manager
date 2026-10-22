@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:money_manager/app/routes.dart';
+import 'package:money_manager/features/transactions/presentation/add_edit_transaction_sheet.dart';
 
 /// Navigation shell for the app.
 ///
@@ -108,6 +109,18 @@ class _AppShellState extends State<AppShell> {
     );
 
     return Scaffold(
+      floatingActionButton: widget.currentRoute == AppRoutes.home
+          ? FloatingActionButton(
+              tooltip: 'Add transaction',
+              onPressed: () => showModalBottomSheet<void>(
+                context: context,
+                isScrollControlled: true,
+                useSafeArea: true,
+                builder: (_) => const AddEditTransactionSheet(),
+              ),
+              child: const Icon(Icons.add),
+            )
+          : null,
       body: isWide
           ? Row(
               children: [
