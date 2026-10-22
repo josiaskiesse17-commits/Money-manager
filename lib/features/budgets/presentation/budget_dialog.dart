@@ -197,6 +197,10 @@ class _BudgetDialogState extends ConsumerState<BudgetDialog> {
               'Please try again when your categories are available.',
             ),
             actions: [
+              SecondaryButton(
+                text: 'Retry',
+                onPressed: () => ref.refresh(categoryProvider(uid)),
+              ),
               SecondaryButton(text: 'Close', onPressed: () => context.pop()),
             ],
           ),
@@ -224,6 +228,10 @@ class _BudgetDialogState extends ConsumerState<BudgetDialog> {
               'Your settings could not be loaded. Please try again.',
             ),
             actions: [
+              SecondaryButton(
+                text: 'Retry',
+                onPressed: () => ref.refresh(settingsProvider(uid)),
+              ),
               SecondaryButton(text: 'Close', onPressed: () => context.pop()),
             ],
           ),

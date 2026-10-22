@@ -98,8 +98,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               settingsAsync.when(
                 loading: () =>
                     const _LoadingCard(message: 'Loading your preferences…'),
-                error: (error, stackTrace) =>
-                    ErrorBanner(message: 'Could not load settings: $error'),
+                error: (error, stackTrace) => ErrorBanner(
+                  message: 'Could not load settings.',
+                  fix: 'Check your connection and try again.',
+                  onRetry: () => ref.refresh(settingsProvider(uid)),
+                ),
                 data: (setting) {
                   final effectiveSetting =
                       setting ??
@@ -130,8 +133,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               categoriesAsync.when(
                 loading: () =>
                     const _LoadingCard(message: 'Loading categories…'),
-                error: (error, stackTrace) =>
-                    ErrorBanner(message: 'Could not load categories: $error'),
+                error: (error, stackTrace) => ErrorBanner(
+                  message: 'Could not load categories.',
+                  fix: 'Check your connection and try again.',
+                  onRetry: () => ref.refresh(categoryProvider(uid)),
+                ),
                 data: (categories) =>
                     _buildCategoriesSection(context, categories, uid),
               ),

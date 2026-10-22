@@ -6,6 +6,8 @@ import 'package:money_manager/app/app_shell.dart';
 import 'package:money_manager/app/month_provider.dart';
 import 'package:money_manager/app/routes.dart';
 import 'package:money_manager/app/widgets/app_card.dart';
+import 'package:money_manager/app/widgets/empty_state.dart';
+import 'package:money_manager/app/widgets/error_banner.dart';
 import 'package:money_manager/app/widgets/primary_button.dart';
 import 'package:money_manager/app/widgets/responsive_body.dart';
 import 'package:money_manager/app/widgets/secondary_button.dart';
@@ -102,7 +104,11 @@ class _ReportContent extends ConsumerWidget {
         catsAsync.isLoading ||
         settingsAsync.isLoading ||
         walletsAsync.isLoading) {
-      return const SizedBox.shrink();
+      return const SizedBox(
+        width: double.infinity,
+        height: 160,
+        child: Center(child: CircularProgressIndicator()),
+      );
     }
 
     // Check error state
@@ -110,7 +116,31 @@ class _ReportContent extends ConsumerWidget {
         catsAsync.hasError ||
         settingsAsync.hasError ||
         walletsAsync.hasError) {
-      return const SizedBox.shrink();
+      final failed = <String>[
+        if (txnsAsync.hasError) 'transactions',
+        if (catsAsync.hasError) 'categories',
+        if (settingsAsync.hasError) 'settings',
+        if (walletsAsync.hasError) 'wallets',
+      ];
+
+      // Each failed source gets its own retry so a partial failure only
+      // reloads what actually broke.
+      final retries = <VoidCallback>[
+        if (txnsAsync.hasError) () => ref.refresh(transactionProvider(uid)),
+        if (catsAsync.hasError) () => ref.refresh(categoryProvider(uid)),
+        if (settingsAsync.hasError) () => ref.refresh(settingsProvider(uid)),
+        if (walletsAsync.hasError) () => ref.refresh(walletProvider(uid)),
+      ];
+
+      return ErrorBanner(
+        message: 'Failed to load ${_joinWords(failed)}.',
+        fix: 'Check your connection and try again.',
+        onRetry: () {
+          for (final retry in retries) {
+            retry();
+          }
+        },
+      );
     }
 
     final transactions = txnsAsync.requireValue;
@@ -164,6 +194,14 @@ class _ReportContent extends ConsumerWidget {
         if (pdfBytes != null) ...[
           const SizedBox(height: 24),
           const Text('PDF generated. Use Share to save or print.'),
+        ],
+        if (_countInRange(transactions, range) == 0) ...[
+          const SizedBox(height: 24),
+          const EmptyState(
+            icon: Icons.description_outlined,
+            title: 'No transactions in this period',
+            subtitle: 'Pick another range to generate a report.',
+          ),
         ],
       ],
     );
@@ -291,6 +329,15 @@ int _countInRange(List<Transaction> transactions, _Range range) {
     return t.date.isAfter(range.start.subtract(const Duration(days: 1))) &&
         t.date.isBefore(range.end.add(const Duration(days: 1)));
   }).length;
+}
+
+/// Joins words into a readable list: "a", "a and b", "a, b and c".
+String _joinWords(List<String> words) {
+  if (words.isEmpty) return 'data';
+  if (words.length == 1) return words.first;
+
+  final head = words.sublist(0, words.length - 1).join(', ');
+  return '$head and ${words.last}';
 }
 
 String _monthName(DateTime date) {

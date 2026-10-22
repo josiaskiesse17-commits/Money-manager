@@ -40,7 +40,7 @@ Work top to bottom. Tick a task only when `dart format .`, `flutter analyze` and
 - [x] Tests: PIN hash, conversion math, budget status, PDF generation
 
 ## M7 — Polish and release
-- [ ] Empty/error/loading states everywhere; app icon and splash
+- [x] Empty/error/loading states everywhere; app icon and splash
 - [ ] (USER) Manual pass: offline and online, both themes, both currencies, edit/delete balance checks, run on Chrome (`flutter run -d chrome`) and on a phone
 - [ ] Release build (APK/AAB) and check the `INTERNET` permission in the main manifest
 

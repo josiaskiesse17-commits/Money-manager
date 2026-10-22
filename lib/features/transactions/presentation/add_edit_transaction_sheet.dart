@@ -328,8 +328,12 @@ class _AddEditTransactionSheetState
       ),
       body: categoriesAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, _) => const Center(
-          child: ErrorBanner(message: 'Failed to load categories'),
+        error: (_, _) => Center(
+          child: ErrorBanner(
+            message: 'Failed to load categories.',
+            fix: 'Check your connection and try again.',
+            onRetry: () => ref.refresh(categoryProvider(uid)),
+          ),
         ),
         data: (categories) {
           return Form(
