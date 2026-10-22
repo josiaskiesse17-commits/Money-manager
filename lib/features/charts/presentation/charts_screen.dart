@@ -3,7 +3,6 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:money_manager/app/month_provider.dart';
-import 'package:money_manager/app/theme.dart';
 import 'package:money_manager/app/widgets/amount_text.dart';
 import 'package:money_manager/app/widgets/empty_state.dart';
 import 'package:money_manager/app/widgets/error_banner.dart';
@@ -13,8 +12,24 @@ import 'package:money_manager/data/models/category.dart';
 import 'package:money_manager/data/models/transaction.dart';
 import 'package:money_manager/features/auth/application/auth_provider.dart';
 import 'package:money_manager/features/categories/application/category_provider.dart';
+import 'package:money_manager/features/charts/application/chart_totals.dart';
+import 'package:money_manager/features/home/application/home_totals.dart';
 import 'package:money_manager/features/settings/application/settings_provider.dart';
 import 'package:money_manager/features/transactions/application/transaction_provider.dart';
+
+/// Distinct slice colors; index follows the sorted category order.
+const List<Color> _chartPalette = [
+  Color(0xFF0F5FA8),
+  Color(0xFFD9A21B),
+  Color(0xFF1B9E8F),
+  Color(0xFF7B5EA7),
+  Color(0xFFE0752B),
+  Color(0xFFC2477A),
+  Color(0xFF5B8C2A),
+  Color(0xFF5C7080),
+];
+
+Color _colorAt(int index) => _chartPalette[index % _chartPalette.length];
 
 /// Charts screen: donut of spending by category + daily bars.
 class ChartsScreen extends ConsumerWidget {
@@ -55,21 +70,9 @@ class ChartsScreen extends ConsumerWidget {
                   data: (transactions) => categoriesAsync.when(
                     data: (categories) => settingsAsync.when(
                       data: (setting) {
-                        final monthStart = DateTime(
-                          selectedMonth.year,
-                          selectedMonth.month,
-                          1,
-                        );
-                        final monthEnd = DateTime(
-                          selectedMonth.year,
-                          selectedMonth.month + 1,
-                          1,
-                        );
-
                         final expenseTxns = transactions.where((t) {
                           return t.type == 'expense' &&
-                              t.date.isAfter(monthStart) &&
-                              t.date.isBefore(monthEnd);
+                              isInMonth(t.date, selectedMonth);
                         }).toList();
 
                         if (expenseTxns.isEmpty) {
@@ -80,25 +83,15 @@ class ChartsScreen extends ConsumerWidget {
                           );
                         }
 
-                        final displayCurrency = setting?.displayMode ?? 'CDF';
-                        final rateScaled = setting?.usdToCdfRate ?? 280050;
+                        // displayMode is cdf | usd | combined (combined = CDF).
+                        final target = targetCurrencyFor(
+                          setting?.displayMode ?? 'combined',
+                        );
 
-                        final Map<String, int> categorySpending = {};
-                        for (final txn in expenseTxns) {
-                          int converted = txn.amount;
-                          if (txn.currency != displayCurrency) {
-                            if (txn.currency == 'USD' &&
-                                displayCurrency == 'CDF') {
-                              converted = (txn.amount * rateScaled) ~/ 10000;
-                            } else if (txn.currency == 'CDF' &&
-                                displayCurrency == 'USD') {
-                              converted = (txn.amount * 10000) ~/ rateScaled;
-                            }
-                          }
-                          categorySpending[txn.categoryId] =
-                              (categorySpending[txn.categoryId] ?? 0) +
-                              converted;
-                        }
+                        final categorySpending = spendingByCategory(
+                          expenses: expenseTxns,
+                          target: target,
+                        );
 
                         final totalSpending = categorySpending.values.fold<int>(
                           0,
@@ -107,10 +100,10 @@ class ChartsScreen extends ConsumerWidget {
 
                         return Column(
                           children: [
-                            const SectionHeader(
+                            SectionHeader(
                               title: 'Spending by category',
                               subtitle:
-                                  'Donut chart shows share of each category.',
+                                  'Share of each category. Amounts in $target.',
                             ),
                             const SizedBox(height: 16),
                             SizedBox(
@@ -119,6 +112,7 @@ class ChartsScreen extends ConsumerWidget {
                                 categorySpending: categorySpending,
                                 categories: categories,
                                 total: totalSpending,
+                                currency: target,
                               ),
                             ),
                             const SizedBox(height: 32),
@@ -133,8 +127,7 @@ class ChartsScreen extends ConsumerWidget {
                                 transactions: expenseTxns,
                                 categories: categories,
                                 month: selectedMonth,
-                                displayCurrency: displayCurrency,
-                                rateScaled: rateScaled,
+                                displayCurrency: target,
                               ),
                             ),
                           ],
@@ -180,23 +173,29 @@ class ChartsScreen extends ConsumerWidget {
 }
 
 /// Donut chart showing spending by category.
+/// [currency] is the currency the amounts are expressed in.
 class DonutChart extends StatelessWidget {
   final Map<String, int> categorySpending;
   final List<Category> categories;
   final int total;
+  final String currency;
 
   const DonutChart({
     super.key,
     required this.categorySpending,
     required this.categories,
     required this.total,
+    this.currency = 'CDF',
   });
 
   @override
   Widget build(BuildContext context) {
-    final moneyColors = Theme.of(context).extension<MoneyColors>();
-    final entries = categorySpending.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
+    // Only categories we can name; largest first. Color index follows order.
+    final entries =
+        categorySpending.entries
+            .where((e) => categories.any((c) => c.id == e.key))
+            .toList()
+          ..sort((a, b) => b.value.compareTo(a.value));
 
     return Row(
       children: [
@@ -206,22 +205,22 @@ class DonutChart extends StatelessWidget {
             child: PieChart(
               PieChartData(
                 startDegreeOffset: 270,
-                sections: entries.map((entry) {
-                  final cat = categories
-                      .where((c) => c.id == entry.key)
-                      .firstOrNull;
-                  if (cat == null) return PieChartSectionData(value: 0);
-                  final pct = total > 0 ? (entry.value * 100) ~/ total : 0;
-                  return PieChartSectionData(
-                    value: entry.value.toDouble(),
-                    title: '$pct%',
-                    color: cat.type == 'expense'
-                        ? (moneyColors?.expense ??
-                              Theme.of(context).colorScheme.error)
-                        : Theme.of(context).colorScheme.primary,
-                    radius: 60,
-                  );
-                }).toList(),
+                sections: [
+                  for (var i = 0; i < entries.length; i++)
+                    PieChartSectionData(
+                      value: entries[i].value.toDouble(),
+                      title: _pct(entries[i].value) >= 5
+                          ? '${_pct(entries[i].value)}%'
+                          : '',
+                      titleStyle: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                      color: _colorAt(i),
+                      radius: 60,
+                    ),
+                ],
                 centerSpaceRadius: 40,
                 sectionsSpace: 4,
               ),
@@ -231,54 +230,53 @@ class DonutChart extends StatelessWidget {
         Expanded(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: entries.map((entry) {
-              final cat = categories
-                  .where((c) => c.id == entry.key)
-                  .firstOrNull;
-              if (cat == null) return const SizedBox.shrink();
-              final pct = total > 0 ? (entry.value * 100) ~/ total : 0;
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 16,
-                      height: 16,
-                      decoration: BoxDecoration(
-                        color: cat.type == 'expense'
-                            ? (moneyColors?.expense ??
-                                  Theme.of(context).colorScheme.error)
-                            : Theme.of(context).colorScheme.primary,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        cat.name,
-                        style: const TextStyle(fontSize: 14),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    AmountText(
-                      amount: entry.value,
-                      currency: cat.type == 'expense' ? 'CDF' : 'USD',
-                      fontSize: 14,
-                    ),
-                    const SizedBox(width: 4),
-                    Text('($pct%)'),
-                  ],
-                ),
-              );
-            }).toList(),
+            children: [
+              for (var i = 0; i < entries.length; i++)
+                _legendRow(context, entries[i], i),
+            ],
           ),
         ),
       ],
     );
   }
+
+  int _pct(int value) => total > 0 ? (value * 100) ~/ total : 0;
+
+  Widget _legendRow(BuildContext context, MapEntry<String, int> entry, int i) {
+    final cat = categories.firstWhereOrNull((c) => c.id == entry.key);
+    if (cat == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Container(
+            width: 16,
+            height: 16,
+            decoration: BoxDecoration(
+              color: _colorAt(i),
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              cat.name,
+              style: const TextStyle(fontSize: 14),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          AmountText(amount: entry.value, currency: currency, fontSize: 14),
+          const SizedBox(width: 4),
+          Text('(${_pct(entry.value)}%)'),
+        ],
+      ),
+    );
+  }
 }
 
 /// Daily bars chart showing spending per day.
+/// Each transaction is converted with its own rateAtEntry.
+/// [rateScaled] is kept only for compatibility and is ignored.
 class DailyBarsChart extends StatelessWidget {
   final List<Transaction> transactions;
   final List<Category> categories;
@@ -292,26 +290,16 @@ class DailyBarsChart extends StatelessWidget {
     required this.categories,
     required this.month,
     required this.displayCurrency,
-    required this.rateScaled,
+    this.rateScaled = 0,
   });
 
   @override
   Widget build(BuildContext context) {
     final daysInMonth = DateTime(month.year, month.month + 1, 0).day;
-    final Map<int, int> dailySpending = {};
-
-    for (final txn in transactions) {
-      int converted = txn.amount;
-      if (txn.currency != displayCurrency) {
-        if (txn.currency == 'USD' && displayCurrency == 'CDF') {
-          converted = (txn.amount * rateScaled) ~/ 10000;
-        } else if (txn.currency == 'CDF' && displayCurrency == 'USD') {
-          converted = (txn.amount * 10000) ~/ rateScaled;
-        }
-      }
-      final day = txn.date.day;
-      dailySpending[day] = (dailySpending[day] ?? 0) + converted;
-    }
+    final target = displayCurrency == 'USD' || displayCurrency == 'usd'
+        ? 'USD'
+        : 'CDF';
+    final dailySpending = spendingByDay(expenses: transactions, target: target);
 
     final maxSpending = dailySpending.values.fold<int>(
       0,

@@ -71,9 +71,12 @@ List<Override> _signedOutOverrides() {
 
 /// Builds overrides for a signed-in scenario (Home screen).
 Future<List<Override>> _signedInOverrides({bool filledData = false}) async {
-  final mockAuth = MockFirebaseAuth();
-  final mockFirestore = FakeFirebaseFirestore();
   final uid = 'test_uid';
+  final mockAuth = MockFirebaseAuth(
+    signedIn: true,
+    mockUser: MockUser(uid: uid),
+  );
+  final mockFirestore = FakeFirebaseFirestore();
 
   // Pre-sign in the mock user
   await mockAuth.createUserWithEmailAndPassword(
