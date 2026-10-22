@@ -8,6 +8,8 @@ import 'package:money_manager/app/widgets/app_text_field.dart';
 import 'package:money_manager/app/widgets/category_chips.dart';
 import 'package:money_manager/app/widgets/error_banner.dart';
 import 'package:money_manager/app/widgets/primary_button.dart';
+import 'package:money_manager/core/money/currency.dart';
+import 'package:money_manager/core/money/money.dart';
 import 'package:money_manager/data/models/transaction.dart';
 import 'package:money_manager/features/auth/application/auth_provider.dart';
 import 'package:money_manager/features/categories/application/category_provider.dart';
@@ -71,9 +73,10 @@ class _AddEditTransactionSheetState
   }
 
   String _formatAmount(int amount, String currency) {
-    return currency == 'USD'
-        ? (amount / 100).toStringAsFixed(2)
-        : amount.toString();
+    return Money(
+      amount: amount,
+      currency: currency == 'USD' ? Currency.usd : Currency.cdf,
+    ).format();
   }
 
   void _changeCurrency(String currency) {
@@ -104,47 +107,22 @@ class _AddEditTransactionSheetState
       return 'Enter amount';
     }
 
-    final normalized = value.trim().replaceAll(',', '');
-
-    if (_currency == 'CDF') {
-      if (int.tryParse(normalized) == null) {
-        return 'Invalid amount';
-      }
-    } else {
-      final parsed = double.tryParse(normalized);
-
-      if (parsed == null || !parsed.isFinite || parsed < 0) {
-        return 'Invalid amount';
-      }
-
-      final parts = normalized.split('.');
-
-      if (parts.length > 2) {
-        return 'Invalid amount';
-      }
-
-      if (parts.length == 2 && parts[1].length > 2) {
+    final currency = _currency == 'USD' ? Currency.usd : Currency.cdf;
+    try {
+      Money.parse(value.trim(), currency);
+      return null;
+    } on FormatException catch (e) {
+      final message = e.toString();
+      if (_currency == 'USD' && message.contains('Max 2 decimal')) {
         return 'Max 2 decimals';
       }
+      return 'Invalid amount';
     }
-
-    return null;
   }
 
   int _parseAmount() {
-    final normalized = _amountCtrl.text.trim().replaceAll(',', '');
-
-    if (_currency == 'CDF') {
-      return int.parse(normalized);
-    }
-
-    final parts = normalized.split('.');
-    final wholePart = parts[0].isEmpty ? '0' : parts[0];
-    final fractionalPart = parts.length > 1 ? parts[1] : '';
-    final centsPart = fractionalPart.padRight(2, '0');
-
-    return int.parse(wholePart) * 100 +
-        (centsPart.isEmpty ? 0 : int.parse(centsPart));
+    final currency = _currency == 'USD' ? Currency.usd : Currency.cdf;
+    return Money.parse(_amountCtrl.text.trim(), currency).amount;
   }
 
   Future<void> _save(WidgetRef ref, String uid) async {

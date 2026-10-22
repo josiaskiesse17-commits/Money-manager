@@ -8,6 +8,8 @@ import 'package:money_manager/app/widgets/app_text_field.dart';
 import 'package:money_manager/app/widgets/auth_layout.dart';
 import 'package:money_manager/app/widgets/error_banner.dart';
 import 'package:money_manager/app/widgets/primary_button.dart';
+import 'package:money_manager/core/money/currency.dart';
+import 'package:money_manager/core/money/money.dart';
 import 'package:money_manager/data/models/category.dart';
 import 'package:money_manager/data/models/setting.dart';
 import 'package:money_manager/data/models/wallet.dart';
@@ -57,11 +59,9 @@ class _FirstRunSetupState extends ConsumerState<FirstRunSetup> {
     final uid = user.uid;
 
     try {
-      final rate =
-          int.parse(_rateCtrl.text.replaceAll(',', '').replaceAll('.', '')) *
-          100;
-      final cdfBalance = int.tryParse(_cdfCtrl.text.replaceAll(',', '')) ?? 0;
-      final usdBalance = int.tryParse(_usdCtrl.text.replaceAll(',', '')) ?? 0;
+      final rate = ExchangeRate.parse(_rateCtrl.text).rateScaled;
+      final cdfBalance = Money.parse(_cdfCtrl.text, Currency.cdf).amount;
+      final usdBalance = Money.parse(_usdCtrl.text, Currency.usd).amount;
 
       final setting = Setting(
         docId: 'main',
@@ -239,11 +239,22 @@ class _FirstRunSetupState extends ConsumerState<FirstRunSetup> {
   String? _validateRate(String? v) {
     if (v == null || v.isEmpty) return 'Rate required';
     try {
-      final cleaned = v.replaceAll(',', '').replaceAll('.', '');
-      if (int.tryParse(cleaned) == null) return 'Enter a valid rate';
+      ExchangeRate.parse(v);
       return null;
-    } catch (_) {
+    } on FormatException {
       return 'Enter a valid rate';
+    }
+  }
+
+  String? _validateBalance(String? v, Currency currency) {
+    if (v == null || v.trim().isEmpty) return 'Enter amount';
+    try {
+      Money.parse(v.trim(), currency);
+      return null;
+    } on FormatException {
+      return currency == Currency.cdf
+          ? 'Enter a valid whole-number CDF amount'
+          : 'Enter a valid USD amount';
     }
   }
 
@@ -269,7 +280,7 @@ class _FirstRunSetupState extends ConsumerState<FirstRunSetup> {
               label: 'Money you have in CDF',
               helperText: 'Whole francs',
               keyboardType: TextInputType.number,
-              validator: (v) => v == null || v.isEmpty ? 'Enter amount' : null,
+              validator: (v) => _validateBalance(v, Currency.cdf),
             ),
             const SizedBox(height: 16),
             AppTextField(
@@ -277,7 +288,7 @@ class _FirstRunSetupState extends ConsumerState<FirstRunSetup> {
               label: 'Money you have in USD',
               helperText: 'e.g. 100.00',
               keyboardType: TextInputType.number,
-              validator: (v) => v == null || v.isEmpty ? 'Enter amount' : null,
+              validator: (v) => _validateBalance(v, Currency.usd),
             ),
             const SizedBox(height: 24),
             PrimaryButton(

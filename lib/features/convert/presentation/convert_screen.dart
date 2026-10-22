@@ -10,6 +10,8 @@ import 'package:money_manager/app/widgets/error_banner.dart';
 import 'package:money_manager/app/widgets/primary_button.dart';
 import 'package:money_manager/app/widgets/responsive_body.dart';
 import 'package:money_manager/app/widgets/section_header.dart';
+import 'package:money_manager/core/money/currency.dart';
+import 'package:money_manager/core/money/money.dart';
 import 'package:money_manager/data/models/conversion.dart';
 import 'package:money_manager/features/auth/application/auth_provider.dart';
 import 'package:money_manager/features/convert/application/conversion_provider.dart';
@@ -47,18 +49,11 @@ class _ConvertScreenState extends ConsumerState<ConvertScreen> {
     }
 
     try {
-      int fromAmount;
-      if (_direction == 'usd_to_cdf') {
-        final parts = text.split('.');
-        final combined = parts.join('');
-        fromAmount = int.parse(combined);
-        if (parts.length == 2 && parts[1].length == 1) {
-          fromAmount *= 10;
-        }
-      } else {
-        final cleaned = text.replaceAll('.', '');
-        fromAmount = int.parse(cleaned);
-      }
+      final fromMoney = Money.parse(
+        _amountCtrl.text,
+        _direction == 'usd_to_cdf' ? Currency.usd : Currency.cdf,
+      );
+      final fromAmount = fromMoney.amount;
 
       int toAmount;
       if (_direction == 'usd_to_cdf') {
@@ -100,11 +95,10 @@ class _ConvertScreenState extends ConsumerState<ConvertScreen> {
   Future<void> _saveConversion(WidgetRef ref, String uid) async {
     if (_previewAmount == null) return;
 
-    final fromAmount =
-        int.tryParse(
-          _amountCtrl.text.replaceAll(',', '').replaceAll('.', ''),
-        ) ??
-        0;
+    final fromAmount = Money.parse(
+      _amountCtrl.text,
+      _direction == 'usd_to_cdf' ? Currency.usd : Currency.cdf,
+    ).amount;
 
     final conversion = Conversion(
       id: DateTime.now().millisecondsSinceEpoch.toString(),

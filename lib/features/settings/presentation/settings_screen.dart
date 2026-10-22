@@ -9,6 +9,8 @@ import 'package:money_manager/app/widgets/error_banner.dart';
 import 'package:money_manager/app/widgets/primary_button.dart';
 import 'package:money_manager/app/widgets/responsive_body.dart';
 import 'package:money_manager/app/widgets/section_header.dart';
+import 'package:money_manager/core/money/currency.dart';
+import 'package:money_manager/core/money/money.dart';
 import 'package:money_manager/data/models/category.dart';
 import 'package:money_manager/data/models/setting.dart';
 import 'package:money_manager/features/auth/application/auth_provider.dart';
@@ -42,7 +44,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   void _syncRateController(String uid, Setting setting) {
-    final formattedRate = (setting.usdToCdfRate / 100).toStringAsFixed(2);
+    final formattedRate = Money(
+      amount: setting.usdToCdfRate,
+      currency: Currency.usd,
+    ).format();
 
     if (_controllerUid != uid) {
       _controllerUid = uid;
@@ -244,21 +249,25 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Future<void> _saveExchangeRate(Setting setting, String uid) async {
     if (_savingRate) return;
 
-    final normalized = _rateController.text
-        .trim()
-        .replaceAll(',', '')
-        .replaceAll(' ', '');
-
-    final rate = double.tryParse(normalized);
-
-    if (rate == null || !rate.isFinite || rate <= 0 || rate > 100000000) {
+    int scaledRate;
+    try {
+      scaledRate = Money.parse(
+        _rateController.text.trim(),
+        Currency.usd,
+      ).amount;
+    } on FormatException {
       setState(() {
         _rateError = 'Enter a valid exchange rate greater than zero.';
       });
       return;
     }
 
-    final scaledRate = (rate * 100).round();
+    if (scaledRate <= 0 || scaledRate > 10000000000) {
+      setState(() {
+        _rateError = 'Enter a valid exchange rate greater than zero.';
+      });
+      return;
+    }
 
     setState(() {
       _savingRate = true;
@@ -272,7 +281,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
       if (!mounted) return;
 
-      _rateController.text = (scaledRate / 100).toStringAsFixed(2);
+      _rateController.text = Money(
+        amount: scaledRate,
+        currency: Currency.usd,
+      ).format();
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Exchange rate saved successfully.')),

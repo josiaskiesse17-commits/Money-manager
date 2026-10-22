@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:money_manager/app/widgets/app_text_field.dart';
 import 'package:money_manager/app/widgets/primary_button.dart';
 import 'package:money_manager/app/widgets/secondary_button.dart';
+import 'package:money_manager/core/money/currency.dart';
+import 'package:money_manager/core/money/money.dart';
 import 'package:money_manager/data/models/budget.dart';
 import 'package:money_manager/data/models/category.dart';
 import 'package:money_manager/features/auth/application/auth_provider.dart';
@@ -68,39 +70,28 @@ class _BudgetDialogState extends ConsumerState<BudgetDialog> {
 
     final existingBudget = widget.budget;
     if (existingBudget != null) {
-      _limitController.text = _currency == 'USD'
-          ? (existingBudget.monthlyLimit / 100).toStringAsFixed(2)
-          : existingBudget.monthlyLimit.toString();
+      _limitController.text = Money(
+        amount: existingBudget.monthlyLimit,
+        currency: _currency == 'USD' ? Currency.usd : Currency.cdf,
+      ).format();
     }
 
     _initialized = true;
   }
 
   int? _parseLimit(String input) {
-    final value = input.trim().replaceAll(',', '');
+    if (input.trim().isEmpty) return null;
 
-    if (value.isEmpty) return null;
-
-    if (_currency == 'USD') {
-      final parsed = double.tryParse(value);
-
-      if (parsed == null ||
-          !parsed.isFinite ||
-          parsed <= 0 ||
-          parsed > 999999999) {
-        return null;
-      }
-
-      return (parsed * 100).round();
+    try {
+      final money = Money.parse(
+        input.trim(),
+        _currency == 'USD' ? Currency.usd : Currency.cdf,
+      );
+      if (money.amount <= 0 || money.amount > 99999999900) return null;
+      return money.amount;
+    } on FormatException {
+      return null;
     }
-
-    // CDF is stored in whole francs.
-    if (value.contains('.')) return null;
-
-    final parsed = int.tryParse(value);
-    if (parsed == null || parsed <= 0) return null;
-
-    return parsed;
   }
 
   Future<void> _save(String uid) async {

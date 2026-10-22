@@ -2,6 +2,9 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import 'package:money_manager/core/money/currency.dart';
+import 'package:money_manager/core/money/money.dart';
+
 /// Numeric amount keypad for transaction forms.
 ///
 /// CDF: whole numbers only.
@@ -102,9 +105,10 @@ class _AmountKeypadState extends State<AmountKeypad> {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
 
-    final display = widget.currency == 'USD'
-        ? '\$${(_amount / 100).toStringAsFixed(2)}'
-        : '$_amount FC';
+    final display = Money(
+      amount: _amount,
+      currency: widget.currency == 'USD' ? Currency.usd : Currency.cdf,
+    ).format();
 
     // Standard numeric layout. CDF uses the same grid with the decimal
     // position replaced by an empty space.
