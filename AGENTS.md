@@ -70,3 +70,5 @@ Firestore is accessed only through `data/` repositories, never from widgets.
 
 ## Git
 - Small commits with clear messages (`feat:`, `fix:`, `test:`, `chore:`), one backlog task per commit when practical.
+- Forbidden: `flutter run`, running the app in Chrome or an emulator, `flutter build`. Allowed and required: `dart format`, `flutter analyze`, `flutter test` (including the full suite). Never skip a task because it needs `flutter test`; run it.
+
