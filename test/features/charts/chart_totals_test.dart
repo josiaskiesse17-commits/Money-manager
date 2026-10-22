@@ -28,7 +28,7 @@ void main() {
       ],
       target: 'CDF',
     );
-    expect(r['c'], 2800000 + 50000);
+    expect(r['c'], 280000 + 50000);
   });
 
   test('two USD expenses with different rateAtEntry convert with own rate', () {
@@ -39,7 +39,7 @@ void main() {
       ],
       target: 'CDF',
     );
-    expect(r['c'], 2800000 + 2900000);
+    expect(r['c'], 280000 + 290000);
   });
 
   test(
