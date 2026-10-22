@@ -77,10 +77,12 @@ class _WalletAdjustSectionState extends ConsumerState<WalletAdjustSection> {
                           ),
                         ),
                         const SizedBox(width: 12),
-                        PrimaryButton(
-                          text: 'Adjust balance',
-                          onPressed: () =>
-                              _showAdjustDialog(context, currency, balance),
+                        IntrinsicWidth(
+                          child: PrimaryButton(
+                            text: 'Adjust balance',
+                            onPressed: () =>
+                                _showAdjustDialog(context, currency, balance),
+                          ),
                         ),
                       ],
                     ),
@@ -126,16 +128,6 @@ class _WalletAdjustSectionState extends ConsumerState<WalletAdjustSection> {
                 ),
                 onChanged: (_) => setState(() => error = null),
               ),
-              if (error != null) ...[
-                const SizedBox(height: 8),
-                Text(
-                  error!,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.error,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
             ],
           ),
           actions: [

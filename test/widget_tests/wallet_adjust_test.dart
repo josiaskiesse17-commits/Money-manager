@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:money_manager/app/widgets/primary_button.dart';
 import 'package:money_manager/data/firebase_providers.dart';
 import 'package:money_manager/features/settings/presentation/settings_screen.dart';
+import 'package:money_manager/features/settings/presentation/widgets/wallet_adjust_section.dart';
 
 import '../helpers/test_fonts.dart';
 import '../helpers/test_theme.dart';
@@ -62,7 +63,8 @@ Future<FakeFirebaseFirestore> _pumpSettingsScreen(
         themeMode: brightness == Brightness.light
             ? ThemeMode.light
             : ThemeMode.dark,
-        home: const SettingsScreen(),
+        // AppShell provides the Scaffold in the real app.
+        home: const Scaffold(body: SettingsScreen()),
       ),
     ),
   );
@@ -74,6 +76,9 @@ Future<void> _openUsdAdjustDialog(WidgetTester tester) async {
   // USD is the second "Adjust balance" button (CDF first, USD second).
   final buttons = find.widgetWithText(PrimaryButton, 'Adjust balance');
   expect(buttons, findsNWidgets(2));
+  // The Wallets card sits below the fold on a phone, so scroll it into view.
+  await tester.ensureVisible(buttons.last);
+  await tester.pumpAndSettle();
   await tester.tap(buttons.last);
   await tester.pumpAndSettle();
 }
@@ -142,7 +147,8 @@ void main() {
           overrides: overrides,
           child: MaterialApp(
             theme: testTheme(brightness: Brightness.light),
-            home: const SettingsScreen(),
+            // AppShell provides the Scaffold in the real app.
+            home: const Scaffold(body: SettingsScreen()),
           ),
         ),
       );
@@ -208,9 +214,23 @@ void main() {
           await _pumpSettingsScreen(tester, size: size, brightness: brightness);
 
           expect(find.byType(SettingsScreen), findsOneWidget);
-          expect(find.text('Wallets'), findsOneWidget);
-          expect(find.text('USD'), findsOneWidget);
-          expect(find.text('CDF'), findsOneWidget);
+
+          // Scope the wallet labels to the Wallets card: the exchange-rate
+          // card also renders a "CDF" label.
+          final wallets = find.byType(WalletAdjustSection);
+          expect(wallets, findsOneWidget);
+          expect(
+            find.descendant(of: wallets, matching: find.text('Wallets')),
+            findsOneWidget,
+          );
+          expect(
+            find.descendant(of: wallets, matching: find.text('USD')),
+            findsOneWidget,
+          );
+          expect(
+            find.descendant(of: wallets, matching: find.text('CDF')),
+            findsOneWidget,
+          );
 
           await tester.binding.setSurfaceSize(null);
         });
