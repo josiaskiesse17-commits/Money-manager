@@ -18,6 +18,7 @@ import 'package:money_manager/features/categories/application/category_provider.
 import 'package:money_manager/features/settings/application/app_lock_provider.dart';
 import 'package:money_manager/features/settings/application/settings_provider.dart';
 import 'package:money_manager/features/settings/presentation/category_dialog.dart';
+import 'package:money_manager/features/settings/presentation/widgets/wallet_adjust_section.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -135,6 +136,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   );
                 },
               ),
+              WalletAdjustSection(uid: uid),
+              const SizedBox(height: 20),
               categoriesAsync.when(
                 loading: () =>
                     const _LoadingCard(message: 'Loading categories…'),

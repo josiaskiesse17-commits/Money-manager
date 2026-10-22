@@ -11,7 +11,9 @@ service cloud.firestore {
     }
     match /users/{uid}/wallets/{currency} {
       allow read: if isOwner(uid);
-      allow create, update: if isOwner(uid) && validCurrency(currency) && request.resource.data.balance is int;
+      allow create, update: if isOwner(uid) && validCurrency(currency)
+        && request.resource.data.balance is int
+        && request.resource.data.openingBalance is int;
     }
     match /users/{uid}/categories/{id} {
       allow read: if isOwner(uid);

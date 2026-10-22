@@ -38,6 +38,25 @@ class WalletRepository {
       reportError(e, userMessage: 'Failed to update balance');
     });
   }
+
+  /// Adjusts a wallet's balance by [diff] (newBalance - currentBalance) in a
+  /// single WriteBatch, incrementing both balance and openingBalance so
+  /// history stays consistent. Fire-and-forget: errors are reported via
+  /// [reportError] and rethrown so the caller can surface a banner.
+  Future<void> adjustBalance(String uid, String currency, int diff) async {
+    final batch = _firestore.batch();
+    final doc = walletDoc(uid, currency);
+    batch.set(doc, {
+      'balance': FieldValue.increment(diff),
+      'openingBalance': FieldValue.increment(diff),
+    }, SetOptions(merge: true));
+    try {
+      await batch.commit();
+    } on Object catch (e) {
+      reportError(e, userMessage: 'Failed to adjust balance.');
+      rethrow;
+    }
+  }
 }
 
 final walletRepositoryProvider = Provider<WalletRepository>((ref) {
