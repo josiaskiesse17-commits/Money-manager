@@ -42,9 +42,11 @@ class _AppShellState extends State<AppShell> {
   int _routeToIndex(String route) {
     if (route == AppRoutes.home) return 0;
     if (route == AppRoutes.transactions) return 1;
-    if (route == AppRoutes.budgets) return 2;
-    if (route == AppRoutes.charts) return 3;
-    if (route == AppRoutes.settings) return 4;
+    if (route == AppRoutes.convert) return 2;
+    if (route == AppRoutes.budgets) return 3;
+    if (route == AppRoutes.charts) return 4;
+    if (route == AppRoutes.settings) return 5;
+    if (route == AppRoutes.reports) return 5;
 
     return 0;
   }
@@ -64,6 +66,11 @@ class _AppShellState extends State<AppShell> {
         icon: Icon(Icons.receipt_long_outlined),
         selectedIcon: Icon(Icons.receipt_long),
         label: 'Transactions',
+      ),
+      NavigationDestination(
+        icon: Icon(Icons.currency_exchange_outlined),
+        selectedIcon: Icon(Icons.currency_exchange),
+        label: 'Convert',
       ),
       NavigationDestination(
         icon: Icon(Icons.account_balance_wallet_outlined),
@@ -120,6 +127,11 @@ class _AppShellState extends State<AppShell> {
                       label: Text('Transactions'),
                     ),
                     NavigationRailDestination(
+                      icon: Icon(Icons.currency_exchange_outlined),
+                      selectedIcon: Icon(Icons.currency_exchange),
+                      label: Text('Convert'),
+                    ),
+                    NavigationRailDestination(
                       icon: Icon(Icons.account_balance_wallet_outlined),
                       selectedIcon: Icon(Icons.account_balance_wallet),
                       label: Text('Budgets'),
@@ -159,7 +171,7 @@ class _AppShellState extends State<AppShell> {
 
     if (distance < 0 || velocity < -_minimumSwipeVelocity) {
       // Swipe left: move to the next main destination.
-      if (_selectedIndex < 4) {
+      if (_selectedIndex < 5) {
         _navigateTo(_selectedIndex + 1);
       }
     } else if (distance > 0 || velocity > _minimumSwipeVelocity) {
@@ -171,13 +183,14 @@ class _AppShellState extends State<AppShell> {
   }
 
   void _navigateTo(int index) {
-    if (index < 0 || index > 4 || index == _selectedIndex) {
+    if (index < 0 || index > 5 || index == _selectedIndex) {
       return;
     }
 
     final routes = [
       AppRoutes.home,
       AppRoutes.transactions,
+      AppRoutes.convert,
       AppRoutes.budgets,
       AppRoutes.charts,
       AppRoutes.settings,

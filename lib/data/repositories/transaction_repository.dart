@@ -63,8 +63,25 @@ class TransactionRepository {
     });
   }
 
-  /// Deletes a transaction and reverses its balance impact.
-  /// Undo rewrites the same doc id.
+  /// Restores a previously deleted transaction (same id) and reapplies its
+  /// balance impact via WriteBatch.
+  Future<void> restoreTransaction(String uid, Transaction txn) {
+    final batch = _firestore.batch();
+    final txnRef = _txns(uid).doc(txn.id);
+    batch.set(txnRef, txn.toMap());
+
+    final deltas = balanceDeltas(null, txn);
+    deltas.forEach((currency, delta) {
+      batch.update(_wallet(uid, currency), {
+        'balance': FieldValue.increment(delta),
+      });
+    });
+
+    return batch.commit().catchError((e) {
+      reportError(e, userMessage: 'Failed to restore transaction');
+    });
+  }
+
   Future<void> deleteTransaction(String uid, Transaction txn) {
     final batch = _firestore.batch();
     final txnRef = _txns(uid).doc(txn.id);

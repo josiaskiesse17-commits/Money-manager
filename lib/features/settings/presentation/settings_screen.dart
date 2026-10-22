@@ -142,6 +142,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     _buildCategoriesSection(context, categories, uid),
               ),
               const SizedBox(height: 20),
+              ListTile(
+                leading: const Icon(Icons.bar_chart_outlined),
+                title: const Text('Reports'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.go(AppRoutes.reports),
+              ),
+              const SizedBox(height: 20),
               _buildAppLockCard(context),
               const SizedBox(height: 24),
               SizedBox(

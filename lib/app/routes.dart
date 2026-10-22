@@ -11,8 +11,6 @@ class AppRoutes {
   static const resetPassword = '/reset-password';
   static const home = '/home';
   static const transactions = '/transactions';
-  static const addTransaction = '/transactions/add';
-  static const editTransaction = '/transactions/edit';
   static const convert = '/convert';
   static const budgets = '/budgets';
   static const charts = '/charts';

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -781,8 +783,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
         icon: const Icon(Icons.delete_outline),
         title: const Text('Delete transaction?'),
         content: const Text(
-          'This transaction will be permanently deleted. '
-          'This action cannot be undone.',
+          'This transaction will be deleted. You can undo within a few seconds.',
         ),
         actions: [
           TextButton(
@@ -813,7 +814,19 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Transaction deleted successfully.')),
+        SnackBar(
+          content: const Text('Transaction deleted successfully.'),
+          action: SnackBarAction(
+            label: 'Undo',
+            onPressed: () {
+              unawaited(
+                ref
+                    .read(transactionProvider(uid).notifier)
+                    .restore(transaction),
+              );
+            },
+          ),
+        ),
       );
     } catch (_) {
       if (!mounted) return;

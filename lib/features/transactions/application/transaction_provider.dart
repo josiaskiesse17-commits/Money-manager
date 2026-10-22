@@ -47,6 +47,10 @@ class TransactionStateNotifier
     await _txnRepo.deleteTransaction(_uid, txn);
   }
 
+  Future<void> restore(Transaction txn) async {
+    await _txnRepo.restoreTransaction(_uid, txn);
+  }
+
   @override
   void dispose() {
     _subscription?.cancel();
