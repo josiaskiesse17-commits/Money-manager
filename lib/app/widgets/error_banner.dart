@@ -27,19 +27,17 @@ class ErrorBanner extends StatelessWidget {
         children: [
           Text(
             message,
-            style: TextStyle(
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: Theme.of(context).colorScheme.error,
               fontWeight: FontWeight.w500,
-              fontSize: 14,
             ),
           ),
           if (fix != null) ...[
             const SizedBox(height: 8),
             Text(
               fix!,
-              style: TextStyle(
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
-                fontSize: 13,
               ),
             ),
           ],

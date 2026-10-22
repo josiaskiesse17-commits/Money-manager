@@ -17,10 +17,7 @@ class SecondaryButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
-      child: Text(
-        text,
-        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-      ),
+      child: Text(text, style: Theme.of(context).textTheme.labelLarge),
     );
   }
 }

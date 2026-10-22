@@ -32,12 +32,12 @@ class PrimaryButton extends StatelessWidget {
           shadowColor: Colors.transparent,
         ),
         child: busy
-            ? const SizedBox(
+            ? SizedBox(
                 height: 20,
                 width: 20,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.onPrimary,
                 ),
               )
             : Row(
@@ -50,10 +50,8 @@ class PrimaryButton extends StatelessWidget {
                   ],
                   Text(
                     text,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                    ),
+                    style: Theme.of(context).textTheme.bodyLarge
+                        ?.copyWith(fontWeight: FontWeight.w500),
                   ),
                 ],
               ),

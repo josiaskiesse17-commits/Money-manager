@@ -114,7 +114,7 @@ class AppTheme {
       colorScheme: _lightColorScheme,
       extensions: const [_lightMoneyColors],
       textTheme: _textTheme,
-      inputDecorationTheme: _inputDecorationTheme,
+      inputDecorationTheme: _inputDecorationTheme(_lightColorScheme),
       elevatedButtonTheme: _elevatedButtonTheme,
       outlinedButtonTheme: _outlinedButtonTheme,
       textButtonTheme: _textButtonTheme,
@@ -140,7 +140,7 @@ class AppTheme {
       colorScheme: _darkColorScheme,
       extensions: const [_darkMoneyColors],
       textTheme: _textTheme,
-      inputDecorationTheme: _inputDecorationTheme,
+      inputDecorationTheme: _inputDecorationTheme(_darkColorScheme),
       elevatedButtonTheme: _elevatedButtonTheme,
       outlinedButtonTheme: _outlinedButtonTheme,
       textButtonTheme: _textButtonTheme,
@@ -182,39 +182,57 @@ final _textTheme = const TextTheme(
   bodySmall: TextStyle(fontSize: 12, fontWeight: FontWeight.w400),
 );
 
-final _inputDecorationTheme = InputDecorationTheme(
-  filled: true,
-  fillColor: Colors.white,
-  border: OutlineInputBorder(
-    borderRadius: BorderRadius.circular(12),
-    borderSide: const BorderSide(color: Color(0xFFD5DBE4)),
-  ),
-  enabledBorder: OutlineInputBorder(
-    borderRadius: BorderRadius.circular(12),
-    borderSide: const BorderSide(color: Color(0xFFD5DBE4)),
-  ),
-  focusedBorder: OutlineInputBorder(
-    borderRadius: BorderRadius.circular(12),
-    borderSide: const BorderSide(color: Color(0xFF0F5FA8), width: 2),
-  ),
-  errorBorder: OutlineInputBorder(
-    borderRadius: BorderRadius.circular(12),
-    borderSide: const BorderSide(color: Color(0xFFC73E2E)),
-  ),
-  focusedErrorBorder: OutlineInputBorder(
-    borderRadius: BorderRadius.circular(12),
-    borderSide: const BorderSide(color: Color(0xFFC73E2E), width: 2),
-  ),
-  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-  labelStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w400),
-  helperStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w400),
-  errorStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w400),
-  hintStyle: const TextStyle(
-    fontSize: 16,
-    fontWeight: FontWeight.w400,
-    color: Color(0xFF5B6575),
-  ),
-);
+/// Input decoration built from the color scheme.
+///
+/// Every field color (fill, border, label, hint) comes from the scheme, so
+/// light and dark mode stay in sync with the rest of the app.
+InputDecorationTheme _inputDecorationTheme(ColorScheme colors) {
+  return InputDecorationTheme(
+    filled: true,
+    fillColor: colors.surface,
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: colors.outline),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: colors.outline),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: colors.primary, width: 2),
+    ),
+    errorBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: colors.error),
+    ),
+    focusedErrorBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: colors.error, width: 2),
+    ),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+    labelStyle: TextStyle(
+      fontSize: 16,
+      fontWeight: FontWeight.w400,
+      color: colors.onSurfaceVariant,
+    ),
+    helperStyle: TextStyle(
+      fontSize: 12,
+      fontWeight: FontWeight.w400,
+      color: colors.onSurfaceVariant,
+    ),
+    errorStyle: TextStyle(
+      fontSize: 12,
+      fontWeight: FontWeight.w400,
+      color: colors.error,
+    ),
+    hintStyle: TextStyle(
+      fontSize: 16,
+      fontWeight: FontWeight.w400,
+      color: colors.onSurfaceVariant,
+    ),
+  );
+}
 
 /// Buttons have finite minimum widths.
 ///
