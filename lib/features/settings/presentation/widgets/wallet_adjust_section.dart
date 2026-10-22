@@ -102,8 +102,13 @@ class _WalletAdjustSectionState extends ConsumerState<WalletAdjustSection> {
     int currentBalance,
   ) {
     final moneyCurrency = currency == 'USD' ? Currency.usd : Currency.cdf;
+    // Prefill with a plain editable number ("10.00" / "42000"). The display
+    // format ("$10.00" / "42,000 FC") cannot be parsed back by Money.parse.
     final ctrl = TextEditingController(
-      text: Money(amount: currentBalance, currency: moneyCurrency).format(),
+      text: Money(
+        amount: currentBalance,
+        currency: moneyCurrency,
+      ).toEditableString(),
     );
     String? error;
     bool saving = false;
@@ -164,12 +169,11 @@ class _WalletAdjustSectionState extends ConsumerState<WalletAdjustSection> {
                       }
                       final diff = newBalance - currentBalance;
                       if (diff == 0) {
-                        if (!mounted) return;
-                        Navigator.pop(context);
+                        Navigator.pop(dialogContext);
                         return;
                       }
                       setState(() => saving = true);
-                      final dialogContext = context;
+                      final navigator = Navigator.of(dialogContext);
                       unawaited(
                         ref
                             .read(walletRepositoryProvider)
@@ -177,20 +181,19 @@ class _WalletAdjustSectionState extends ConsumerState<WalletAdjustSection> {
                             .then((_) {
                               if (!mounted) return;
                               // ignore: use_build_context_synchronously
-                              ScaffoldMessenger.of(dialogContext).showSnackBar(
+                              ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   content: Text('Balance adjusted.'),
                                 ),
                               );
                               if (!mounted) return;
-                              // ignore: use_build_context_synchronously
-                              Navigator.pop(dialogContext);
+                              navigator.pop();
                             })
                             .catchError((e) {
                               if (!mounted) return;
                               setState(() => saving = false);
                               // ignore: use_build_context_synchronously
-                              ScaffoldMessenger.of(dialogContext).showSnackBar(
+                              ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   content: Text('Could not adjust balance.'),
                                 ),

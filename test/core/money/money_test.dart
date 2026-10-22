@@ -111,6 +111,66 @@ void main() {
     });
   });
 
+  group('Money.toEditableString', () {
+    test('USD returns a plain number without symbol or separators', () {
+      expect(
+        const Money(amount: 123450, currency: Currency.usd).toEditableString(),
+        '1234.50',
+      );
+    });
+
+    test('USD keeps two decimals', () {
+      expect(
+        const Money(amount: 10, currency: Currency.usd).toEditableString(),
+        '0.10',
+      );
+      expect(
+        const Money(amount: 0, currency: Currency.usd).toEditableString(),
+        '0.00',
+      );
+    });
+
+    test('USD keeps the sign of a negative amount', () {
+      expect(
+        const Money(amount: -500, currency: Currency.usd).toEditableString(),
+        '-5.00',
+      );
+    });
+
+    test('CDF returns plain whole francs', () {
+      expect(
+        const Money(amount: 42000, currency: Currency.cdf).toEditableString(),
+        '42000',
+      );
+      expect(
+        const Money(amount: 0, currency: Currency.cdf).toEditableString(),
+        '0',
+      );
+      expect(
+        const Money(amount: -500, currency: Currency.cdf).toEditableString(),
+        '-500',
+      );
+    });
+
+    test('the editable string parses back to the same amount', () {
+      for (final money in [
+        const Money(amount: 123450, currency: Currency.usd),
+        const Money(amount: 10, currency: Currency.usd),
+        const Money(amount: 0, currency: Currency.usd),
+        const Money(amount: -500, currency: Currency.usd),
+        const Money(amount: 42000, currency: Currency.cdf),
+        const Money(amount: 0, currency: Currency.cdf),
+        const Money(amount: -500, currency: Currency.cdf),
+      ]) {
+        expect(
+          Money.parse(money.toEditableString(), money.currency),
+          money,
+          reason: 'round trip failed for ${money.format()}',
+        );
+      }
+    });
+  });
+
   group('Money.convertTo', () {
     test('USD to CDF', () {
       final result = const Money(

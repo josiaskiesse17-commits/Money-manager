@@ -157,6 +157,24 @@ class Money {
     }
   }
 
+  /// Formats as a plain editable number: "10.00" for USD, "42000" for CDF.
+  ///
+  /// Unlike [format] it has no currency symbol, no thousands separators and
+  /// no "FC" suffix, so the user can edit it freely and [Money.parse] can
+  /// read it back.
+  String toEditableString() {
+    final sign = amount < 0 ? '-' : '';
+    final absAmount = amount.abs();
+    switch (currency) {
+      case Currency.usd:
+        final dollars = absAmount ~/ 100;
+        final cents = absAmount % 100;
+        return '$sign$dollars.${cents.toString().padLeft(2, '0')}';
+      case Currency.cdf:
+        return '$sign$absAmount';
+    }
+  }
+
   /// Converts to [target] currency using [rateScaled] (CDF per 1 USD, x100).
   /// Uses integer math, rounded half away from zero:
   ///   USD cents -> CDF francs:  cents * rateScaled / 10000
