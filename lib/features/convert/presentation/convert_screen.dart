@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:money_manager/app/app_shell.dart';
-import 'package:money_manager/app/routes.dart';
 import 'package:money_manager/app/widgets/app_card.dart';
 import 'package:money_manager/app/widgets/amount_text.dart';
 import 'package:money_manager/app/widgets/app_text_field.dart';
@@ -133,175 +131,175 @@ class _ConvertScreenState extends ConsumerState<ConvertScreen> {
     final settingsAsync = ref.watch(settingsProvider(uid));
     final conversionsAsync = ref.watch(conversionProvider(uid));
 
-    return AppShell(
-      currentRoute: AppRoutes.convert,
-      child: ResponsiveBody(
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SectionHeader(
-                title: 'Convert',
-                subtitle: 'Move money between your CDF and USD wallets.',
-              ),
-              const SizedBox(height: 16),
-              settingsAsync.when(
-                data: (setting) {
-                  if (setting != null) _rateScaled = setting.usdToCdfRate;
-                  return Column(
-                    children: [
-                      // Direction toggle
-                      SegmentedButton<String>(
-                        segments: const [
-                          ButtonSegment(
-                            value: 'usd_to_cdf',
-                            label: Text('USD → CDF'),
-                          ),
-                          ButtonSegment(
-                            value: 'cdf_to_usd',
-                            label: Text('CDF → USD'),
-                          ),
-                        ],
-                        selected: {_direction},
-                        onSelectionChanged: (selection) {
-                          setState(() => _direction = selection.first);
-                          _amountCtrl.clear();
-                          _updatePreview();
-                        },
-                      ),
-                      const SizedBox(height: 24),
-                      // Rate display
-                      AppCard(
-                        padding: const EdgeInsets.all(16),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text('Current rate'),
-                            Text(
+    return ResponsiveBody(
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SectionHeader(
+              title: 'Convert',
+              subtitle: 'Move money between your CDF and USD wallets.',
+            ),
+            const SizedBox(height: 16),
+            settingsAsync.when(
+              data: (setting) {
+                if (setting != null) _rateScaled = setting.usdToCdfRate;
+                return Column(
+                  children: [
+                    // Direction toggle
+                    SegmentedButton<String>(
+                      segments: const [
+                        ButtonSegment(
+                          value: 'usd_to_cdf',
+                          label: Text('USD → CDF'),
+                        ),
+                        ButtonSegment(
+                          value: 'cdf_to_usd',
+                          label: Text('CDF → USD'),
+                        ),
+                      ],
+                      selected: {_direction},
+                      onSelectionChanged: (selection) {
+                        setState(() => _direction = selection.first);
+                        _amountCtrl.clear();
+                        _updatePreview();
+                      },
+                    ),
+                    const SizedBox(height: 24),
+                    // Rate display
+                    AppCard(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          const Text('Current rate'),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
                               '1 USD = ${_formatCdf(_rateScaled ~/ 100)}.${(_rateScaled % 100).toString().padLeft(2, '0')} CDF',
                               style: const TextStyle(
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    // Amount input
+                    const SectionHeader(title: 'Amount'),
+                    const SizedBox(height: 8),
+                    AppTextField(
+                      controller: _amountCtrl,
+                      label: _direction == 'usd_to_cdf' ? 'USD' : 'CDF',
+                      helperText: _direction == 'usd_to_cdf'
+                          ? 'Max 2 decimals'
+                          : 'Whole francs',
+                      keyboardType: TextInputType.number,
+                      onChanged: (_) => _updatePreview(),
+                    ),
+                    if (_error != null) ...[
+                      const SizedBox(height: 8),
+                      ErrorBanner(message: _error!),
+                    ],
+                    const SizedBox(height: 16),
+                    // Preview
+                    if (_previewAmount != null) ...[
+                      AppCard(
+                        padding: const EdgeInsets.all(16),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('You will receive'),
+                            AmountText(
+                              amount: _previewAmount!,
+                              currency: _direction == 'usd_to_cdf'
+                                  ? 'CDF'
+                                  : 'USD',
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ],
                         ),
                       ),
                       const SizedBox(height: 24),
-                      // Amount input
-                      const SectionHeader(title: 'Amount'),
-                      const SizedBox(height: 8),
-                      AppTextField(
-                        controller: _amountCtrl,
-                        label: _direction == 'usd_to_cdf' ? 'USD' : 'CDF',
-                        helperText: _direction == 'usd_to_cdf'
-                            ? 'Max 2 decimals'
-                            : 'Whole francs',
-                        keyboardType: TextInputType.number,
-                        onChanged: (_) => _updatePreview(),
-                      ),
-                      if (_error != null) ...[
-                        const SizedBox(height: 8),
-                        ErrorBanner(message: _error!),
-                      ],
-                      const SizedBox(height: 16),
-                      // Preview
-                      if (_previewAmount != null) ...[
-                        AppCard(
-                          padding: const EdgeInsets.all(16),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text('You will receive'),
-                              AmountText(
-                                amount: _previewAmount!,
-                                currency: _direction == 'usd_to_cdf'
-                                    ? 'CDF'
-                                    : 'USD',
-                                fontSize: 20,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                      ],
-                      // Save button
-                      PrimaryButton(
-                        text: 'Convert',
-                        onPressed: _previewAmount == null
-                            ? null
-                            : () => _saveConversion(ref, uid),
-                      ),
                     ],
-                  );
-                },
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (_, _) => ErrorBanner(
-                  message: 'Failed to load settings.',
-                  fix: 'Check your connection and try again.',
-                  onRetry: () => ref.refresh(settingsProvider(uid)),
-                ),
-              ),
-              const SizedBox(height: 32),
-              // Conversion history
-              const SectionHeader(title: 'History'),
-              const SizedBox(height: 8),
-              conversionsAsync.when(
-                data: (conversions) {
-                  if (conversions.isEmpty) {
-                    return const EmptyState(
-                      icon: Icons.swap_horiz,
-                      title: 'No conversions yet',
-                      subtitle: 'Convert between wallets to see history here.',
-                    );
-                  }
-                  return SizedBox(
-                    height: 300,
-                    child: ListView.builder(
-                      itemCount: conversions.length,
-                      itemBuilder: (_, index) {
-                        final c = conversions[index];
-                        return ListTile(
-                          leading: const Icon(Icons.swap_horiz),
-                          title: Text('${c.fromCurrency} → ${c.toCurrency}'),
-                          subtitle: Text(
-                            DateFormat('MMM d, yyyy hh:mm a').format(c.date),
-                          ),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              AmountText(
-                                amount: c.toAmount,
-                                currency: c.toCurrency,
-                                fontSize: 14,
-                              ),
-                              IconButton(
-                                icon: Icon(
-                                  Icons.delete,
-                                  color: Theme.of(context).colorScheme.error,
-                                ),
-                                onPressed: () async {
-                                  await ref
-                                      .read(conversionProvider(uid).notifier)
-                                      .delete(c);
-                                },
-                              ),
-                            ],
-                          ),
-                        );
-                      },
+                    // Save button
+                    PrimaryButton(
+                      text: 'Convert',
+                      onPressed: _previewAmount == null
+                          ? null
+                          : () => _saveConversion(ref, uid),
                     ),
-                  );
-                },
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (_, _) => ErrorBanner(
-                  message: 'Failed to load history.',
-                  fix: 'Check your connection and try again.',
-                  onRetry: () => ref.refresh(conversionProvider(uid)),
-                ),
+                  ],
+                );
+              },
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (_, _) => ErrorBanner(
+                message: 'Failed to load settings.',
+                fix: 'Check your connection and try again.',
+                onRetry: () => ref.refresh(settingsProvider(uid)),
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 32),
+            // Conversion history
+            const SectionHeader(title: 'History'),
+            const SizedBox(height: 8),
+            conversionsAsync.when(
+              data: (conversions) {
+                if (conversions.isEmpty) {
+                  return const EmptyState(
+                    icon: Icons.swap_horiz,
+                    title: 'No conversions yet',
+                    subtitle: 'Convert between wallets to see history here.',
+                  );
+                }
+                return SizedBox(
+                  height: 300,
+                  child: ListView.builder(
+                    itemCount: conversions.length,
+                    itemBuilder: (_, index) {
+                      final c = conversions[index];
+                      return ListTile(
+                        leading: const Icon(Icons.swap_horiz),
+                        title: Text('${c.fromCurrency} → ${c.toCurrency}'),
+                        subtitle: Text(
+                          DateFormat('MMM d, yyyy hh:mm a').format(c.date),
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            AmountText(
+                              amount: c.toAmount,
+                              currency: c.toCurrency,
+                              fontSize: 14,
+                            ),
+                            IconButton(
+                              icon: Icon(
+                                Icons.delete,
+                                color: Theme.of(context).colorScheme.error,
+                              ),
+                              onPressed: () async {
+                                await ref
+                                    .read(conversionProvider(uid).notifier)
+                                    .delete(c);
+                              },
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                );
+              },
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (_, _) => ErrorBanner(
+                message: 'Failed to load history.',
+                fix: 'Check your connection and try again.',
+                onRetry: () => ref.refresh(conversionProvider(uid)),
+              ),
+            ),
+          ],
         ),
       ),
     );

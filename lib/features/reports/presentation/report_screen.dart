@@ -2,9 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:money_manager/app/app_shell.dart';
 import 'package:money_manager/app/month_provider.dart';
-import 'package:money_manager/app/routes.dart';
 import 'package:money_manager/app/widgets/app_card.dart';
 import 'package:money_manager/app/widgets/empty_state.dart';
 import 'package:money_manager/app/widgets/error_banner.dart';
@@ -31,23 +29,20 @@ class ReportScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedMonth = ref.watch(selectedMonthProvider);
 
-    return AppShell(
-      currentRoute: AppRoutes.reports,
-      child: ResponsiveBody(
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SectionHeader(
-                title: 'Report',
-                subtitle: 'Generate a PDF report for a period.',
-              ),
-              const SizedBox(height: 16),
-              _RangeSelector(),
-              const SizedBox(height: 24),
-              _ReportContent(selectedMonth: selectedMonth),
-            ],
-          ),
+    return ResponsiveBody(
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SectionHeader(
+              title: 'Report',
+              subtitle: 'Generate a PDF report for a period.',
+            ),
+            const SizedBox(height: 16),
+            _RangeSelector(),
+            const SizedBox(height: 24),
+            _ReportContent(selectedMonth: selectedMonth),
+          ],
         ),
       ),
     );
