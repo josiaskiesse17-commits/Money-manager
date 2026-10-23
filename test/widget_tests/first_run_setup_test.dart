@@ -3,8 +3,9 @@ import 'package:firebase_auth_mocks/firebase_auth_mocks.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:money_manager/data/firebase_providers.dart';
 import 'package:money_manager/data/repositories/auth_repository.dart';
+import 'package:money_manager/data/repositories/wallet_repository.dart';
+import 'package:money_manager/data/firebase_providers.dart';
 import 'package:money_manager/features/auth/application/auth_provider.dart';
 import 'package:money_manager/features/onboarding/presentation/first_run_setup.dart';
 
@@ -16,7 +17,8 @@ class _StubAuthRepository extends AuthRepository {
 }
 
 class _FakeAuthNotifier extends AuthStateNotifier {
-  _FakeAuthNotifier() : super(_StubAuthRepository()) {
+  _FakeAuthNotifier()
+    : super(_StubAuthRepository(), WalletRepository(FakeFirebaseFirestore())) {
     state = MockUser(uid: _uid);
   }
 }
@@ -24,6 +26,7 @@ class _FakeAuthNotifier extends AuthStateNotifier {
 List<Override> _signedInOverrides(FakeFirebaseFirestore mockFirestore) {
   return [
     authRepositoryProvider.overrideWithValue(_StubAuthRepository()),
+    walletRepositoryProvider.overrideWithValue(WalletRepository(mockFirestore)),
     authProvider.overrideWith((ref) => _FakeAuthNotifier()),
     firestoreProvider.overrideWithValue(mockFirestore),
   ];

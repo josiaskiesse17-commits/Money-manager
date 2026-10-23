@@ -34,7 +34,7 @@ class Transaction {
       'type': type,
       'categoryId': categoryId,
       'date': Timestamp.fromDate(date),
-      'note': note,
+      'note': note ?? '',
       'rateAtEntry': rateAtEntry,
       'createdAt': Timestamp.fromDate(createdAt),
       if (updatedAt != null) 'updatedAt': Timestamp.fromDate(updatedAt!),

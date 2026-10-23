@@ -4,15 +4,17 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:money_manager/app/error_reporter.dart';
 import 'package:money_manager/data/repositories/auth_repository.dart';
+import 'package:money_manager/data/repositories/wallet_repository.dart';
 
 class AuthStateNotifier extends StateNotifier<User?> {
   static const _authTimeout = Duration(seconds: 20);
 
-  AuthStateNotifier(this._repo) : super(null) {
+  AuthStateNotifier(this._repo, this._walletRepo) : super(null) {
     _repo.authStateChanges.listen((user) => state = user);
   }
 
   final AuthRepository _repo;
+  final WalletRepository _walletRepo;
 
   String? _signInError;
   String? _signUpError;
@@ -41,6 +43,9 @@ class AuthStateNotifier extends StateNotifier<User?> {
     _busy = true;
     try {
       await _repo.signIn(email, password).timeout(_authTimeout);
+      // Self-heal: ensure both wallet docs exist so balance increments never
+      // fail on a missing or half-empty document.
+      unawaited(_walletRepo.ensureWalletsExist(state?.uid ?? ''));
     } on FirebaseAuthException catch (e) {
       _signInError = _mapAuthException(e.code);
       reportError(e, userMessage: _signInError);
@@ -171,5 +176,8 @@ class AuthStateNotifier extends StateNotifier<User?> {
 }
 
 final authProvider = StateNotifierProvider<AuthStateNotifier, User?>((ref) {
-  return AuthStateNotifier(ref.read(authRepositoryProvider));
+  return AuthStateNotifier(
+    ref.read(authRepositoryProvider),
+    ref.read(walletRepositoryProvider),
+  );
 });

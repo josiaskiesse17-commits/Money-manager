@@ -110,7 +110,13 @@ void main() {
       );
       final map = original.toMap();
       final restored = Transaction.fromMap('txn_2', map);
-      expect(restored, original);
+      // toMap serializes null note as empty string (Firestore rules require string).
+      expect(restored.note, '');
+      expect(restored.amount, original.amount);
+      expect(restored.currency, original.currency);
+      expect(restored.type, original.type);
+      expect(restored.categoryId, original.categoryId);
+      expect(restored.rateAtEntry, original.rateAtEntry);
     });
   });
 

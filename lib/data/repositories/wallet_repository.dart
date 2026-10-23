@@ -57,6 +57,25 @@ class WalletRepository {
       rethrow;
     }
   }
+
+  /// Ensures both wallet documents (CDF and USD) exist with `currency`,
+  /// `openingBalance` and `balance` fields. Missing fields default to 0.
+  /// Uses SetOptions(merge: true) so existing fields are never overwritten.
+  /// Fire-and-forget: errors are reported via [reportError] and swallowed so
+  /// a missing wallet can never block the user.
+  Future<void> ensureWalletsExist(String uid) {
+    final batch = _firestore.batch();
+    for (final currency in <String>['CDF', 'USD']) {
+      batch.set(walletDoc(uid, currency), {
+        'currency': currency,
+        'openingBalance': 0,
+        'balance': 0,
+      }, SetOptions(merge: true));
+    }
+    return batch.commit().catchError((e) {
+      reportError(e, userMessage: 'Failed to initialize wallets.');
+    });
+  }
 }
 
 final walletRepositoryProvider = Provider<WalletRepository>((ref) {
