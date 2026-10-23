@@ -99,30 +99,33 @@ class ChartsScreen extends ConsumerWidget {
                         );
 
                         return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            SectionHeader(
+                            const SectionHeader(
                               title: 'Spending by category',
-                              subtitle:
-                                  'Share of each category. Amounts in $target.',
+                              subtitle: 'Share of each category.',
                             ),
                             const SizedBox(height: 16),
-                            SizedBox(
-                              height: 280,
-                              child: DonutChart(
-                                categorySpending: categorySpending,
-                                categories: categories,
-                                total: totalSpending,
-                                currency: target,
-                              ),
+                            LayoutBuilder(
+                              builder: (context, constraints) {
+                                final isWide = constraints.maxWidth >= 600;
+                                return DonutChart(
+                                  categorySpending: categorySpending,
+                                  categories: categories,
+                                  total: totalSpending,
+                                  currency: target,
+                                  isWide: isWide,
+                                );
+                              },
                             ),
-                            const SizedBox(height: 32),
+                            const SizedBox(height: 24),
                             const SectionHeader(
                               title: 'Daily spending',
                               subtitle: 'Bar chart shows spending per day.',
                             ),
                             const SizedBox(height: 16),
                             SizedBox(
-                              height: 280,
+                              height: isPhone ? 200 : 240,
                               child: DailyBarsChart(
                                 transactions: expenseTxns,
                                 categories: categories,
@@ -174,11 +177,14 @@ class ChartsScreen extends ConsumerWidget {
 
 /// Donut chart showing spending by category.
 /// [currency] is the currency the amounts are expressed in.
+/// [isWide] controls layout: side-by-side (donut + legend) when true,
+/// stacked vertically (donut above, legend below) when false.
 class DonutChart extends StatelessWidget {
   final Map<String, int> categorySpending;
   final List<Category> categories;
   final int total;
   final String currency;
+  final bool isWide;
 
   const DonutChart({
     super.key,
@@ -186,7 +192,10 @@ class DonutChart extends StatelessWidget {
     required this.categories,
     required this.total,
     this.currency = 'CDF',
+    this.isWide = false,
   });
+
+  static const _maxDonutWidth = 240.0;
 
   @override
   Widget build(BuildContext context) {
@@ -197,45 +206,64 @@ class DonutChart extends StatelessWidget {
             .toList()
           ..sort((a, b) => b.value.compareTo(a.value));
 
-    return Row(
-      children: [
-        Expanded(
-          child: AspectRatio(
-            aspectRatio: 1,
-            child: PieChart(
-              PieChartData(
-                startDegreeOffset: 270,
-                sections: [
-                  for (var i = 0; i < entries.length; i++)
-                    PieChartSectionData(
-                      value: entries[i].value.toDouble(),
-                      title: _pct(entries[i].value) >= 5
-                          ? '${_pct(entries[i].value)}%'
-                          : '',
-                      titleStyle: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
-                      color: _colorAt(i),
-                      radius: 60,
-                    ),
-                ],
-                centerSpaceRadius: 40,
-                sectionsSpace: 4,
-              ),
+    final donut = AspectRatio(
+      aspectRatio: 1,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(
+          maxWidth: _maxDonutWidth,
+          maxHeight: _maxDonutWidth,
+        ),
+        child: PieChart(
+          PieChartData(
+            startDegreeOffset: 270,
+            sections: [
+              for (var i = 0; i < entries.length; i++)
+                PieChartSectionData(
+                  value: entries[i].value.toDouble(),
+                  title: _pct(entries[i].value) >= 5
+                      ? '${_pct(entries[i].value)}%'
+                      : '',
+                  titleStyle: TextStyle(
+                    fontSize: MediaQuery.textScalerOf(context).scale(12),
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                  color: _colorAt(i),
+                  radius: 60,
+                ),
+            ],
+            centerSpaceRadius: 40,
+            sectionsSpace: 4,
+          ),
+        ),
+      ),
+    );
+
+    if (isWide) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(child: Center(child: donut)),
+          const SizedBox(width: 24),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (var i = 0; i < entries.length; i++)
+                  _legendRow(context, entries[i], i),
+              ],
             ),
           ),
-        ),
-        Expanded(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              for (var i = 0; i < entries.length; i++)
-                _legendRow(context, entries[i], i),
-            ],
-          ),
-        ),
+        ],
+      );
+    }
+
+    return Column(
+      children: [
+        Center(child: donut),
+        const SizedBox(height: 24),
+        for (var i = 0; i < entries.length; i++)
+          _legendRow(context, entries[i], i),
       ],
     );
   }
@@ -245,8 +273,9 @@ class DonutChart extends StatelessWidget {
   Widget _legendRow(BuildContext context, MapEntry<String, int> entry, int i) {
     final cat = categories.firstWhereOrNull((c) => c.id == entry.key);
     if (cat == null) return const SizedBox.shrink();
+    final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
           Container(
@@ -261,18 +290,13 @@ class DonutChart extends StatelessWidget {
           Expanded(
             child: Text(
               cat.name,
-              style: const TextStyle(fontSize: 14),
+              style: theme.textTheme.bodyMedium,
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          AmountText(
-            amount: entry.value,
-            currency: currency,
-            type: 'expense',
-            fontSize: 14,
-          ),
+          AmountText(amount: entry.value, currency: currency, type: 'expense'),
           const SizedBox(width: 4),
-          Text('(${_pct(entry.value)}%)'),
+          Text('(${_pct(entry.value)}%)', style: theme.textTheme.bodySmall),
         ],
       ),
     );
@@ -298,6 +322,10 @@ class DailyBarsChart extends StatelessWidget {
     this.rateScaled = 0,
   });
 
+  static const _barWidth = 12.0;
+  static const _minBarWidth = 8.0;
+  static const _labelInterval = 7;
+
   @override
   Widget build(BuildContext context) {
     final daysInMonth = DateTime(month.year, month.month + 1, 0).day;
@@ -311,9 +339,54 @@ class DailyBarsChart extends StatelessWidget {
       (sum, v) => sum > v ? sum : v,
     );
 
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final availableWidth = constraints.maxWidth;
+        final totalWidth = daysInMonth * _barWidth;
+
+        if (totalWidth <= availableWidth) {
+          return _buildBarChart(
+            context,
+            daysInMonth,
+            dailySpending,
+            maxSpending,
+          );
+        }
+
+        // Bars don't fit: use horizontal scroll with minimum bar width
+        final scaledBarWidth = availableWidth / daysInMonth;
+        final minBarWidth = scaledBarWidth < _minBarWidth
+            ? _minBarWidth
+            : scaledBarWidth;
+        final totalScrollableWidth = daysInMonth * minBarWidth;
+
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: SizedBox(
+            width: totalScrollableWidth,
+            child: _buildBarChart(
+              context,
+              daysInMonth,
+              dailySpending,
+              maxSpending,
+              barWidth: minBarWidth,
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildBarChart(
+    BuildContext context,
+    int daysInMonth,
+    Map<int, int> dailySpending,
+    int maxSpending, {
+    double barWidth = _barWidth,
+  }) {
     return BarChart(
       BarChartData(
-        alignment: BarChartAlignment.spaceAround,
+        alignment: BarChartAlignment.spaceBetween,
         maxY: (maxSpending > 0 ? maxSpending : 1).toDouble() * 1.2,
         barGroups: List.generate(daysInMonth, (i) {
           final day = i + 1;
@@ -323,7 +396,7 @@ class DailyBarsChart extends StatelessWidget {
             barRods: [
               BarChartRodData(
                 toY: amount.toDouble(),
-                width: 12,
+                width: barWidth,
                 color: Theme.of(context).colorScheme.primary,
                 borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(4),
@@ -343,10 +416,20 @@ class DailyBarsChart extends StatelessWidget {
               showTitles: true,
               getTitlesWidget: (value, meta) {
                 final day = value.toInt();
-                if (day % 7 == 1 || day == daysInMonth) {
-                  return Text('$day', style: const TextStyle(fontSize: 10));
+                if (day < 1 || day > daysInMonth) {
+                  return const Text('');
                 }
-                return const Text('');
+                final isLabeledDay =
+                    day == 1 ||
+                    (day - 1) % _labelInterval == 0 ||
+                    day == daysInMonth;
+                if (!isLabeledDay) {
+                  return const Text('');
+                }
+                return Text(
+                  '$day',
+                  style: Theme.of(context).textTheme.bodySmall,
+                );
               },
             ),
           ),
