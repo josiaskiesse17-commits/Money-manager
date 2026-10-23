@@ -46,7 +46,8 @@ class ConversionRepository {
     }, SetOptions(merge: true));
 
     return batch.commit().catchError((e) {
-      reportError(e, userMessage: 'Failed to record conversion');
+      reportError(e);
+      throw e;
     });
   }
 
@@ -68,7 +69,8 @@ class ConversionRepository {
     }, SetOptions(merge: true));
 
     return batch.commit().catchError((e) {
-      reportError(e, userMessage: 'Failed to delete conversion');
+      reportError(e);
+      throw e;
     });
   }
 }

@@ -35,7 +35,8 @@ class WalletRepository {
       uid,
       currency,
     ).update({'balance': FieldValue.increment(delta)}).catchError((e) {
-      reportError(e, userMessage: 'Failed to update balance');
+      reportError(e);
+      throw e;
     });
   }
 
@@ -53,7 +54,7 @@ class WalletRepository {
     try {
       await batch.commit();
     } on Object catch (e) {
-      reportError(e, userMessage: 'Failed to adjust balance.');
+      reportError(e);
       rethrow;
     }
   }
@@ -75,7 +76,7 @@ class WalletRepository {
       }, SetOptions(merge: true));
     }
     return batch.commit().catchError((e) {
-      reportError(e, userMessage: 'Failed to initialize wallets.');
+      reportError(e);
     });
   }
 }

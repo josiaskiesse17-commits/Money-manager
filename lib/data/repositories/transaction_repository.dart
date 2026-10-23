@@ -36,7 +36,8 @@ class TransactionRepository {
     });
 
     return batch.commit().catchError((e) {
-      reportError(e, userMessage: 'Failed to add transaction');
+      reportError(e);
+      throw e;
     });
   }
 
@@ -59,7 +60,8 @@ class TransactionRepository {
     });
 
     return batch.commit().catchError((e) {
-      reportError(e, userMessage: 'Failed to update transaction');
+      reportError(e);
+      throw e;
     });
   }
 
@@ -78,7 +80,8 @@ class TransactionRepository {
     });
 
     return batch.commit().catchError((e) {
-      reportError(e, userMessage: 'Failed to restore transaction');
+      reportError(e);
+      throw e;
     });
   }
 
@@ -93,7 +96,8 @@ class TransactionRepository {
     });
 
     return batch.commit().catchError((e) {
-      reportError(e, userMessage: 'Failed to delete transaction');
+      reportError(e);
+      throw e;
     });
   }
 }

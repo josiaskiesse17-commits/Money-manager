@@ -147,7 +147,9 @@ class _BudgetDialogState extends ConsumerState<BudgetDialog> {
           );
 
       if (!mounted) return;
-      context.pop();
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Budget saved.')));
+      if (mounted) context.pop();
     } catch (_) {
       if (!mounted) return;
 

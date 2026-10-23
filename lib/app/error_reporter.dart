@@ -5,8 +5,10 @@ import 'package:flutter/material.dart';
 final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
     GlobalKey<ScaffoldMessengerState>();
 
-/// Reports errors: logs in debug, shows a snackbar for real failures.
-/// Offline is not an error (Firestore queues writes).
+/// Reports errors: logs in debug, optionally shows a snackbar.
+/// Repositories that re-throw should call without [userMessage] so the
+/// screen layer handles the user-facing message without duplication.
+/// Offline writes are queued by Firestore and are not treated as errors here.
 void reportError(Object error, {String? userMessage}) {
   if (kDebugMode) {
     debugPrint('Error: $error');

@@ -112,9 +112,14 @@ class _ConvertScreenState extends ConsumerState<ConvertScreen> {
 
     try {
       await ref.read(conversionProvider(uid).notifier).add(conversion);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Conversion saved.')));
       if (mounted) context.pop();
     } catch (e) {
-      setState(() => _error = 'Failed to save conversion');
+      if (mounted) {
+        setState(() => _error = 'Failed to save conversion');
+      }
     }
   }
 

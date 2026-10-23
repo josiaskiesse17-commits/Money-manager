@@ -96,6 +96,22 @@ Future<void> _assertWalletFieldsInt(
   );
 }
 
+/// A ConversionRepository that throws on every write, used to verify that
+/// errors propagate to the caller instead of being swallowed.
+class FailingConversionRepository extends ConversionRepository {
+  FailingConversionRepository(super.firestore);
+
+  @override
+  Future<void> addConversion(String uid, Conversion conversion) async {
+    throw Exception('Simulated conversion write failure');
+  }
+
+  @override
+  Future<void> deleteConversion(String uid, Conversion conversion) async {
+    throw Exception('Simulated conversion delete failure');
+  }
+}
+
 void main() {
   group('Conversion correctness with fake Firestore', () {
     test('converting 10.00 USD to CDF at rate 280050 moves money from source to destination only', () async {
@@ -314,5 +330,170 @@ void main() {
         throwsException,
       );
     });
+
+    test(
+      'successful addConversion completes without error (no false alarm)',
+      () async {
+        final mockFirestore = FakeFirebaseFirestore();
+        await _seedWallets(mockFirestore, _uid);
+
+        final container = ProviderContainer(
+          overrides: [firestoreProvider.overrideWithValue(mockFirestore)],
+        );
+
+        try {
+          final repo = container.read(conversionRepositoryProvider);
+
+          // This should complete without throwing — no false "Failed to save conversion"
+          await repo.addConversion(
+            _uid,
+            Conversion(
+              id: 'conv_success',
+              fromCurrency: 'USD',
+              toCurrency: 'CDF',
+              fromAmount: 1000,
+              toAmount: 28005,
+              rate: 280050,
+              date: DateTime(2026, 1, 15),
+            ),
+          );
+
+          // Verify the write actually happened
+          final usdBal = await _walletBalance(mockFirestore, _uid, 'USD');
+          final cdfBal = await _walletBalance(mockFirestore, _uid, 'CDF');
+          expect(usdBal, 9000);
+          expect(cdfBal, 28005);
+        } finally {
+          container.dispose();
+        }
+      },
+    );
+
+    test(
+      'failing addConversion throws (error propagates, not swallowed)',
+      () async {
+        final mockFirestore = FakeFirebaseFirestore();
+        await _seedWallets(mockFirestore, _uid);
+
+        final container = ProviderContainer(
+          overrides: [
+            firestoreProvider.overrideWithValue(mockFirestore),
+            conversionRepositoryProvider.overrideWithValue(
+              FailingConversionRepository(mockFirestore),
+            ),
+          ],
+        );
+
+        try {
+          final repo = container.read(conversionRepositoryProvider);
+
+          // The failing repository should throw, not swallow the error
+          expect(
+            () => repo.addConversion(
+              _uid,
+              Conversion(
+                id: 'conv_fail',
+                fromCurrency: 'USD',
+                toCurrency: 'CDF',
+                fromAmount: 1000,
+                toAmount: 28005,
+                rate: 280050,
+                date: DateTime(2026, 1, 15),
+              ),
+            ),
+            throwsException,
+          );
+        } finally {
+          container.dispose();
+        }
+      },
+    );
+
+    test(
+      'failing deleteConversion throws (error propagates, not swallowed)',
+      () async {
+        final mockFirestore = FakeFirebaseFirestore();
+        await _seedWallets(mockFirestore, _uid);
+
+        final container = ProviderContainer(
+          overrides: [
+            firestoreProvider.overrideWithValue(mockFirestore),
+            conversionRepositoryProvider.overrideWithValue(
+              FailingConversionRepository(mockFirestore),
+            ),
+          ],
+        );
+
+        try {
+          final repo = container.read(conversionRepositoryProvider);
+
+          expect(
+            () => repo.deleteConversion(
+              _uid,
+              Conversion(
+                id: 'conv_fail_delete',
+                fromCurrency: 'USD',
+                toCurrency: 'CDF',
+                fromAmount: 1000,
+                toAmount: 28005,
+                rate: 280050,
+                date: DateTime(2026, 1, 15),
+              ),
+            ),
+            throwsException,
+          );
+        } finally {
+          container.dispose();
+        }
+      },
+    );
+
+    test(
+      'REAL repository re-throws Firestore write failure instead of swallowing',
+      () async {
+        final mockFirestore = FakeFirebaseFirestore(
+          securityRules: '''
+            service cloud.firestore {
+              match /databases/{database}/documents {
+                match /users/{uid}/wallets/{currency} {
+                  allow read, write: if true;
+                }
+                match /users/{uid}/conversions/{id} {
+                  allow read: if true;
+                  allow write: if false;
+                }
+              }
+            }
+          ''',
+        );
+        await _seedWallets(mockFirestore, _uid);
+
+        final container = ProviderContainer(
+          overrides: [firestoreProvider.overrideWithValue(mockFirestore)],
+        );
+
+        try {
+          final repo = container.read(conversionRepositoryProvider);
+
+          expect(
+            () => repo.addConversion(
+              _uid,
+              Conversion(
+                id: 'conv_fail',
+                fromCurrency: 'USD',
+                toCurrency: 'CDF',
+                fromAmount: 1000,
+                toAmount: 28005,
+                rate: 280050,
+                date: DateTime(2026, 1, 15),
+              ),
+            ),
+            throwsException,
+          );
+        } finally {
+          container.dispose();
+        }
+      },
+    );
   });
 }

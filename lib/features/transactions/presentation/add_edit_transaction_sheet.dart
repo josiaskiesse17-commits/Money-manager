@@ -178,6 +178,15 @@ class _AddEditTransactionSheetState
         await ref.read(transactionProvider(uid).notifier).add(txn);
       }
 
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              _isEdit ? 'Transaction updated.' : 'Transaction added.',
+            ),
+          ),
+        );
+      }
       if (mounted) context.pop();
     } catch (e) {
       if (mounted) {

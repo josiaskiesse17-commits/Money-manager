@@ -43,7 +43,7 @@ class BudgetRepository {
         budget.categoryId,
       ).set(budget.toMap(), SetOptions(merge: true));
     } catch (error, stackTrace) {
-      reportError(error, userMessage: 'Failed to save budget');
+      reportError(error);
       Error.throwWithStackTrace(error, stackTrace);
     }
   }
