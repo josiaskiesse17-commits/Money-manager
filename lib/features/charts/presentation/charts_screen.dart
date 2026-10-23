@@ -265,7 +265,12 @@ class DonutChart extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          AmountText(amount: entry.value, currency: currency, fontSize: 14),
+          AmountText(
+            amount: entry.value,
+            currency: currency,
+            type: 'expense',
+            fontSize: 14,
+          ),
           const SizedBox(width: 4),
           Text('(${_pct(entry.value)}%)'),
         ],

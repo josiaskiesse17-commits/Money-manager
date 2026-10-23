@@ -486,7 +486,12 @@ class _OverviewSection extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 5),
-          AmountText(amount: totalSpent, currency: currency, fontSize: 30),
+          AmountText(
+            amount: totalSpent,
+            currency: currency,
+            type: 'expense',
+            fontSize: 30,
+          ),
           const SizedBox(height: 18),
           Row(
             children: [
@@ -708,6 +713,7 @@ class _BudgetCard extends StatelessWidget {
                     AmountText(
                       amount: summary.spent,
                       currency: summary.currency,
+                      type: 'expense',
                       fontSize: 18,
                     ),
                   ],
@@ -772,6 +778,7 @@ class _BudgetCard extends StatelessWidget {
                       ? summary.spent - summary.limit
                       : summary.remaining,
                   currency: summary.currency,
+                  type: summary.isOverBudget ? 'expense' : 'income',
                   fontSize: 13,
                 ),
               ],

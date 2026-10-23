@@ -58,22 +58,33 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     final transactionsAsync = ref.watch(transactionProvider(uid));
     final categoriesAsync = ref.watch(categoryProvider(uid));
 
+    final textScale = MediaQuery.textScalerOf(context).scale(1.0);
+    final compactSpacing = textScale > 1.5;
+
     return Scaffold(
       body: ResponsiveBody(
         child: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SectionHeader(
-                title: 'Transactions',
-                subtitle: 'Track your income and expenses, all in one place.',
+          child: CustomScrollView(
+            slivers: [
+              SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SectionHeader(
+                      title: 'Transactions',
+                      subtitle:
+                          'Track your income and expenses, all in one place.',
+                    ),
+                    SizedBox(height: compactSpacing ? 12 : 24),
+                    _buildMonthNavigation(selectedMonth),
+                    SizedBox(height: compactSpacing ? 12 : 20),
+                    _buildSearchAndFilters(context),
+                    const SizedBox(height: 12),
+                  ],
+                ),
               ),
-              const SizedBox(height: 24),
-              _buildMonthNavigation(selectedMonth),
-              const SizedBox(height: 20),
-              _buildSearchAndFilters(),
-              const SizedBox(height: 16),
-              Expanded(
+              SliverFillRemaining(
+                hasScrollBody: true,
                 child: transactionsAsync.when(
                   loading: () => const _LoadingState(),
                   error: (error, stackTrace) => ErrorBanner(
@@ -301,58 +312,54 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     );
   }
 
-  Widget _buildSearchAndFilters() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final compact = constraints.maxWidth < 480;
+  Widget _buildSearchAndFilters(BuildContext ctx) {
+    final textScale = MediaQuery.textScalerOf(ctx).scale(1.0);
+    final compact = MediaQuery.sizeOf(ctx).width < 480;
 
-        final searchField = AppTextField(
-          controller: _searchController,
-          label: 'Search transactions',
-          helperText: 'Search notes, categories, type or currency',
-          onChanged: (value) {
-            setState(() {
-              _searchQuery = value.trim();
-            });
-          },
-        );
-
-        final filterButton = OutlinedButton.icon(
-          onPressed: _showFilterBottomSheet,
-          icon: Badge(
-            isLabelVisible: _hasActiveFilters,
-            child: const Icon(Icons.tune),
-          ),
-          label: Text(_hasActiveFilters ? 'Filters applied' : 'Filters'),
-          style: OutlinedButton.styleFrom(
-            minimumSize: const Size(0, 48),
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-          ),
-        );
-
-        if (compact) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              searchField,
-              const SizedBox(height: 10),
-              Align(alignment: Alignment.centerRight, child: filterButton),
-            ],
-          );
-        }
-
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(child: searchField),
-            const SizedBox(width: 12),
-            Padding(
-              padding: const EdgeInsets.only(top: 2),
-              child: filterButton,
-            ),
-          ],
-        );
+    final searchField = AppTextField(
+      controller: _searchController,
+      label: 'Search transactions',
+      helperText: textScale < 1.5
+          ? 'Search notes, categories, type or currency'
+          : null,
+      onChanged: (value) {
+        setState(() {
+          _searchQuery = value.trim();
+        });
       },
+    );
+
+    final filterButton = OutlinedButton.icon(
+      onPressed: _showFilterBottomSheet,
+      icon: Badge(
+        isLabelVisible: _hasActiveFilters,
+        child: const Icon(Icons.tune),
+      ),
+      label: Text(_hasActiveFilters ? 'Filters applied' : 'Filters'),
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size(0, 48),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+      ),
+    );
+
+    if (compact) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          searchField,
+          const SizedBox(height: 10),
+          Align(alignment: Alignment.centerRight, child: filterButton),
+        ],
+      );
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(child: searchField),
+        const SizedBox(width: 12),
+        Padding(padding: const EdgeInsets.only(top: 2), child: filterButton),
+      ],
     );
   }
 

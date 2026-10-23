@@ -66,7 +66,7 @@ class ReportService {
               pw.SizedBox(height: 8),
               pw.Text('CDF Balance: ${_formatCdf(cdfBalance)}'),
               pw.Text(
-                'USD Balance: \$${(usdBalance / 100).toStringAsFixed(2)}',
+                'USD Balance: \$${(usdBalance ~/ 100)}.${(usdBalance % 100).toString().padLeft(2, '0')}',
               ),
               pw.SizedBox(height: 16),
               pw.Text(
@@ -91,7 +91,7 @@ class ReportService {
                       pw.Text(
                         txn.currency == 'CDF'
                             ? '${txn.type == 'income' ? '+' : '-'}${_formatCdf(txn.amount)}'
-                            : '${txn.type == 'income' ? '+' : '-'}\$${(txn.amount / 100).toStringAsFixed(2)}',
+                            : '${txn.type == 'income' ? '+' : '-'}\$${(txn.amount ~/ 100).toString()}.${(txn.amount % 100).toString().padLeft(2, '0')}',
                       ),
                     ],
                   );

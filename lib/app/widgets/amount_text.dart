@@ -2,12 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:money_manager/app/theme.dart';
 
 /// Amount text: tabular figures, signed (+ / -), colored for income/expense.
+///
+/// When [type] is provided ('income' or 'expense'), the sign and color are
+/// determined by [type] rather than the sign of [amount]. This matters for
+/// transaction amounts that are always stored as positive integers with a
+/// separate `type` field. When [type] is null, the sign of [amount] is used
+/// (negative → expense, non-negative → income).
 class AmountText extends StatelessWidget {
   final int amount; // minor units
   final String currency; // CDF | USD
   final bool showSign;
   final double? fontSize;
   final FontWeight? fontWeight;
+  final String? type; // 'income' | 'expense' | null
 
   const AmountText({
     super.key,
@@ -16,11 +23,13 @@ class AmountText extends StatelessWidget {
     this.showSign = false,
     this.fontSize,
     this.fontWeight,
+    this.type,
   });
 
   @override
   Widget build(BuildContext context) {
-    final isIncome = amount >= 0;
+    final effectiveType = type ?? (amount < 0 ? 'expense' : 'income');
+    final isIncome = effectiveType == 'income';
     final absAmount = amount.abs();
 
     final text = switch (currency) {
@@ -30,9 +39,11 @@ class AmountText extends StatelessWidget {
       _ => '$absAmount',
     };
 
-    final signedText = showSign && amount != 0
-        ? (isIncome ? '+$text' : '-$text')
-        : text;
+    final signedText = switch (effectiveType) {
+      'income' => showSign && amount != 0 ? '+$text' : text,
+      'expense' => showSign && amount != 0 ? '-$text' : text,
+      _ => showSign && amount != 0 ? (isIncome ? '+$text' : '-$text') : text,
+    };
 
     final moneyColors = Theme.of(context).extension<MoneyColors>();
     final color = amount == 0

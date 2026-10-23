@@ -47,12 +47,15 @@ class PrimaryButton extends StatelessWidget {
                     Icon(icon, size: 20),
                     const SizedBox(width: 8),
                   ],
-                  Text(
-                    text,
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
-                    style: Theme.of(context).textTheme.bodyLarge
-                        ?.copyWith(fontWeight: FontWeight.w500),
+                  Flexible(
+                    child: Text(
+                      text,
+                      textAlign: TextAlign.center,
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 2,
+                      style: Theme.of(context).textTheme.bodyLarge
+                          ?.copyWith(fontWeight: FontWeight.w500),
+                    ),
                   ),
                 ],
               ),

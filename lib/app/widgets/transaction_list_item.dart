@@ -78,6 +78,7 @@ class TransactionListItem extends StatelessWidget {
         trailing: AmountText(
           amount: transaction.amount,
           currency: transaction.currency,
+          type: transaction.type,
           showSign: true,
           fontSize: 16,
           fontWeight: FontWeight.w600,

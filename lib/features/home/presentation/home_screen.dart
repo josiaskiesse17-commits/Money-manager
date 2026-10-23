@@ -365,6 +365,8 @@ class HomeScreen extends ConsumerWidget {
             summary.income,
             summary.currency,
             Colors.green,
+            type: 'income',
+            showSign: true,
           ),
         ),
         const SizedBox(width: 8),
@@ -374,17 +376,32 @@ class HomeScreen extends ConsumerWidget {
             summary.expense,
             summary.currency,
             Colors.red,
+            type: 'expense',
+            showSign: true,
           ),
         ),
         const SizedBox(width: 8),
         Expanded(
-          child: _statTile('Net', summary.net, summary.currency, Colors.blue),
+          child: _statTile(
+            'Net',
+            summary.net,
+            summary.currency,
+            Colors.blue,
+            showSign: true,
+          ),
         ),
       ],
     );
   }
 
-  Widget _statTile(String title, int amount, String currency, Color color) {
+  Widget _statTile(
+    String title,
+    int amount,
+    String currency,
+    Color color, {
+    String? type,
+    bool showSign = false,
+  }) {
     return AppCard(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -395,7 +412,8 @@ class HomeScreen extends ConsumerWidget {
           AmountText(
             amount: amount,
             currency: currency,
-            showSign: title == 'Net',
+            type: type,
+            showSign: showSign,
             fontSize: 16,
             fontWeight: FontWeight.w600,
           ),

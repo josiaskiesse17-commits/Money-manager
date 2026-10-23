@@ -77,7 +77,7 @@ class _WalletAdjustSectionState extends ConsumerState<WalletAdjustSection> {
                           ),
                         ),
                         const SizedBox(width: 12),
-                        IntrinsicWidth(
+                        Expanded(
                           child: PrimaryButton(
                             text: 'Adjust balance',
                             onPressed: () =>
