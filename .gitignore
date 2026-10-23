@@ -44,5 +44,15 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-# Widget Preview related
-.widget_preview/
+# Analysis and test output logs (stray files, not source)
+/debug_probe.txt
+/override_test.txt
+/override_test2.txt
+/stream_test_output*.txt
+/test_status_full.txt
+/.docs/analyze_out.txt
+/.docs/test_status_full.txt
+
+# Generated status report (not a source file)
+/.docs/STATUS.md
+
