@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:money_manager/app/error_reporter.dart';
 import 'package:money_manager/app/widgets/app_card.dart';
 import 'package:money_manager/app/widgets/amount_text.dart';
 import 'package:money_manager/app/widgets/app_text_field.dart';
@@ -112,15 +112,21 @@ class _ConvertScreenState extends ConsumerState<ConvertScreen> {
 
     try {
       await ref.read(conversionProvider(uid).notifier).add(conversion);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Conversion saved.')));
-      if (mounted) context.pop();
     } catch (e) {
-      if (mounted) {
-        setState(() => _error = 'Failed to save conversion');
-      }
+      if (!mounted) return;
+      reportError(e);
+      setState(() => _error = 'Failed to save conversion');
+      return;
     }
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('Conversion saved.')));
+    setState(() {
+      _amountCtrl.clear();
+      _previewAmount = null;
+      _error = null;
+    });
   }
 
   @override
