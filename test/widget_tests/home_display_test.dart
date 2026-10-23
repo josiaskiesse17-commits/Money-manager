@@ -200,5 +200,58 @@ void main() {
       );
       expect(find.byType(TransactionListItem), findsNothing);
     });
+
+    testWidgets('tapping a recent transaction opens the edit sheet', (
+      tester,
+    ) async {
+      await _pumpHome(
+        tester,
+        displayMode: 'combined',
+        transactionDate: DateTime(2026, 10, 15),
+        size: const Size(800, 1200),
+      );
+
+      expect(find.byType(TransactionListItem), findsOneWidget);
+      await tester.tap(find.byType(TransactionListItem).first);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(Scaffold), findsWidgets);
+    });
+
+    testWidgets('deleting from Home then Undo restores the transaction', (
+      tester,
+    ) async {
+      await _pumpHome(
+        tester,
+        displayMode: 'combined',
+        transactionDate: DateTime(2026, 10, 15),
+        size: const Size(360, 1200),
+      );
+
+      expect(find.byType(TransactionListItem), findsOneWidget);
+
+      // Drag to dismiss (triggers onDelete via Dismissible)
+      await tester.drag(
+        find.byType(TransactionListItem).first,
+        const Offset(-300, 0),
+      );
+      await tester.pumpAndSettle();
+
+      // Confirmation dialog appears
+      expect(find.text('Delete transaction?'), findsOneWidget);
+      await tester.tap(find.text('Delete'));
+      await tester.pumpAndSettle();
+
+      // Transaction removed from list
+      expect(find.byType(TransactionListItem), findsNothing);
+
+      // Undo snackbar
+      expect(find.text('Transaction deleted successfully.'), findsOneWidget);
+      await tester.tap(find.text('Undo'));
+      await tester.pumpAndSettle();
+
+      // Transaction restored
+      expect(find.byType(TransactionListItem), findsOneWidget);
+    });
   });
 }

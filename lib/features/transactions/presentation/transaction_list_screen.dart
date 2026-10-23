@@ -18,6 +18,7 @@ import 'package:money_manager/features/auth/application/auth_provider.dart';
 import 'package:money_manager/features/categories/application/category_provider.dart';
 import 'package:money_manager/features/transactions/application/transaction_provider.dart';
 import 'package:money_manager/features/transactions/presentation/add_edit_transaction_sheet.dart';
+import 'package:money_manager/features/transactions/presentation/transaction_delete_undo.dart';
 
 class TransactionsScreen extends ConsumerStatefulWidget {
   const TransactionsScreen({super.key});
@@ -777,66 +778,18 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
   }
 
   Future<void> _deleteTransaction(Transaction transaction, String uid) async {
-    final confirmed = await showDialog<bool>(
+    final categoryById = {
+      for (final category in ref.read(categoryProvider(uid)).value ?? [])
+        category.id: category,
+    };
+    final category = categoryById[transaction.categoryId];
+    await deleteTransactionWithUndo(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        icon: const Icon(Icons.delete_outline),
-        title: const Text('Delete transaction?'),
-        content: const Text(
-          'This transaction will be deleted. You can undo within a few seconds.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(dialogContext).pop(false);
-            },
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () {
-              Navigator.of(dialogContext).pop(true);
-            },
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error,
-              foregroundColor: Theme.of(context).colorScheme.onError,
-            ),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+      ref: ref,
+      uid: uid,
+      transaction: transaction,
+      categoryName: category?.name ?? 'Unknown',
     );
-
-    if (confirmed != true || !mounted) return;
-
-    try {
-      await ref.read(transactionProvider(uid).notifier).delete(transaction);
-
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Transaction deleted successfully.'),
-          action: SnackBarAction(
-            label: 'Undo',
-            onPressed: () {
-              unawaited(
-                ref
-                    .read(transactionProvider(uid).notifier)
-                    .restore(transaction),
-              );
-            },
-          ),
-        ),
-      );
-    } catch (_) {
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Could not delete the transaction. Please try again.'),
-        ),
-      );
-    }
   }
 }
 

@@ -20,7 +20,6 @@ class PrimaryButton extends StatelessWidget {
     final effectiveOnPressed = busy ? null : onPressed;
     return SizedBox(
       height: 52,
-      width: double.infinity,
       child: ElevatedButton(
         onPressed: effectiveOnPressed,
         style: ElevatedButton.styleFrom(
@@ -50,6 +49,8 @@ class PrimaryButton extends StatelessWidget {
                   ],
                   Text(
                     text,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
                     style: Theme.of(context).textTheme.bodyLarge
                         ?.copyWith(fontWeight: FontWeight.w500),
                   ),

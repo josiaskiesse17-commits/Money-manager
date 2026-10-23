@@ -24,6 +24,8 @@ import 'package:money_manager/features/home/presentation/widgets/combined_total_
 import 'package:money_manager/features/home/presentation/widgets/display_mode_toggle.dart';
 import 'package:money_manager/features/settings/application/settings_provider.dart';
 import 'package:money_manager/features/transactions/application/transaction_provider.dart';
+import 'package:money_manager/features/transactions/presentation/add_edit_transaction_sheet.dart';
+import 'package:money_manager/features/transactions/presentation/transaction_delete_undo.dart';
 import 'package:money_manager/features/wallets/application/wallet_provider.dart';
 
 /// Home screen: wallet balances, month summary, recent transactions.
@@ -77,6 +79,7 @@ class HomeScreen extends ConsumerWidget {
 
                           return _buildForWidth(
                             context,
+                            ref,
                             uid,
                             setting,
                             wallets,
@@ -138,6 +141,7 @@ class HomeScreen extends ConsumerWidget {
   /// Single-column layout on phones, two columns on wide screens.
   Widget _buildForWidth(
     BuildContext context,
+    WidgetRef ref,
     String uid,
     Setting? setting,
     List<Wallet> wallets,
@@ -157,7 +161,13 @@ class HomeScreen extends ConsumerWidget {
       categories,
       selectedMonth,
     );
-    final recent = _buildRecentTransactions(context, transactions, categories);
+    final recent = _buildRecentTransactions(
+      context,
+      ref,
+      transactions,
+      categories,
+      uid,
+    );
 
     if (width >= 900) {
       return Row(
@@ -463,8 +473,10 @@ class HomeScreen extends ConsumerWidget {
 
   Widget _buildRecentTransactions(
     BuildContext context,
+    WidgetRef ref,
     List<Transaction> transactions,
     List<Category> categories,
+    String uid,
   ) {
     final recent = transactions.take(5).toList();
 
@@ -506,13 +518,32 @@ class HomeScreen extends ConsumerWidget {
             return TransactionListItem(
               transaction: transaction,
               category: matching.first,
-              onTap: () {},
-              onDelete: () {},
+              onTap: () =>
+                  _openTransactionSheet(context, transaction: transaction),
+              onDelete: () => deleteTransactionWithUndo(
+                context: context,
+                ref: ref,
+                uid: uid,
+                transaction: transaction,
+                categoryName: matching.first.name,
+              ),
             );
           }),
       ],
     );
   }
+}
+
+Future<void> _openTransactionSheet(
+  BuildContext context, {
+  Transaction? transaction,
+}) async {
+  await showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
+    builder: (_) => AddEditTransactionSheet(transaction: transaction),
+  );
 }
 
 /// Fixed-height loading state: safe inside scroll views.
