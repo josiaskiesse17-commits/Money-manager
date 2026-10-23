@@ -111,7 +111,8 @@ void main() {
       final map = original.toMap();
       final restored = Transaction.fromMap('txn_2', map);
       // toMap serializes null note as empty string (Firestore rules require string).
-      expect(restored.note, '');
+      // fromMap converts empty string back to null (no note in UI).
+      expect(restored.note, isNull);
       expect(restored.amount, original.amount);
       expect(restored.currency, original.currency);
       expect(restored.type, original.type);

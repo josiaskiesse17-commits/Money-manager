@@ -10,7 +10,15 @@ class AuthStateNotifier extends StateNotifier<User?> {
   static const _authTimeout = Duration(seconds: 20);
 
   AuthStateNotifier(this._repo, this._walletRepo) : super(null) {
-    _repo.authStateChanges.listen((user) => state = user);
+    _repo.authStateChanges.listen((user) {
+      state = user;
+      // Self-heal: ensure both wallet docs exist so balance increments never
+      // fail on a missing or half-empty document. Runs on every auth state
+      // change (sign in, sign up, session restore) — not just signIn().
+      if (user != null) {
+        unawaited(_walletRepo.ensureWalletsExist(user.uid));
+      }
+    });
   }
 
   final AuthRepository _repo;

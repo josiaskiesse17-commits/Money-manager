@@ -49,13 +49,20 @@ class Transaction {
       type: map['type'] as String,
       categoryId: map['categoryId'] as String,
       date: (map['date'] as Timestamp).toDate(),
-      note: map['note'] as String?,
+      note: _noteFromMap(map['note']),
       rateAtEntry: map['rateAtEntry'] as int,
       createdAt: (map['createdAt'] as Timestamp).toDate(),
       updatedAt: map['updatedAt'] != null
           ? (map['updatedAt'] as Timestamp).toDate()
           : null,
     );
+  }
+
+  /// Converts a stored note to a display value: an empty string stored in
+  /// Firestore is treated as "no note" (null) in the UI.
+  static String? _noteFromMap(dynamic raw) {
+    final s = raw as String?;
+    return (s != null && s.isNotEmpty) ? s : null;
   }
 
   factory Transaction.fromDocument(DocumentSnapshot doc) {
