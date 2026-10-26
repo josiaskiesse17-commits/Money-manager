@@ -80,44 +80,53 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                 ],
               ),
             ),
-            SliverFillRemaining(
-              hasScrollBody: true,
-              child: transactionsAsync.when(
-                loading: () => const _LoadingState(),
-                error: (error, stackTrace) => ErrorBanner(
+            transactionsAsync.when(
+              loading: () => const SliverFillRemaining(
+                hasScrollBody: false,
+                child: _LoadingState(),
+              ),
+              error: (error, stackTrace) => SliverFillRemaining(
+                hasScrollBody: false,
+                child: ErrorBanner(
                   message: 'Could not load transactions.',
                   fix: 'Check your connection and try again.',
                   onRetry: () {
                     ref.invalidate(transactionProvider(uid));
                   },
                 ),
-                data: (transactions) {
-                  return categoriesAsync.when(
-                    loading: () => const _LoadingState(),
-                    error: (error, stackTrace) => ErrorBanner(
+              ),
+              data: (transactions) {
+                return categoriesAsync.when(
+                  loading: () => const SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: _LoadingState(),
+                  ),
+                  error: (error, stackTrace) => SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: ErrorBanner(
                       message: 'Could not load categories.',
                       fix: 'Check your connection and try again.',
                       onRetry: () {
                         ref.invalidate(categoryProvider(uid));
                       },
                     ),
-                    data: (categories) {
-                      final filteredTransactions = _filterTransactions(
-                        transactions: transactions,
-                        categories: categories,
-                        selectedMonth: selectedMonth,
-                      );
+                  ),
+                  data: (categories) {
+                    final filteredTransactions = _filterTransactions(
+                      transactions: transactions,
+                      categories: categories,
+                      selectedMonth: selectedMonth,
+                    );
 
-                      return _buildTransactionList(
-                        transactions: filteredTransactions,
-                        allTransactions: transactions,
-                        categories: categories,
-                        uid: uid,
-                      );
-                    },
-                  );
-                },
-              ),
+                    return _buildTransactionList(
+                      transactions: filteredTransactions,
+                      allTransactions: transactions,
+                      categories: categories,
+                      uid: uid,
+                    );
+                  },
+                );
+              },
             ),
           ],
         ),
@@ -665,26 +674,29 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     if (transactions.isEmpty) {
       final hasAnyTransactions = allTransactions.isNotEmpty;
 
-      return EmptyState(
-        icon: hasAnyTransactions
-            ? Icons.search_off_outlined
-            : Icons.receipt_long_outlined,
-        title: hasAnyTransactions
-            ? 'No matching transactions'
-            : 'No transactions this month',
-        subtitle: hasAnyTransactions
-            ? 'Try changing your search or filters, or select another month.'
-            : 'Add an income or expense to start tracking your money.',
-        action: hasAnyTransactions
-            ? OutlinedButton.icon(
-                onPressed: _clearSearchAndFilters,
-                icon: const Icon(Icons.filter_alt_off_outlined),
-                label: const Text('Clear search and filters'),
-              )
-            : SecondaryButton(
-                text: 'Add transaction',
-                onPressed: () => _openTransactionSheet(),
-              ),
+      return SliverFillRemaining(
+        hasScrollBody: false,
+        child: EmptyState(
+          icon: hasAnyTransactions
+              ? Icons.search_off_outlined
+              : Icons.receipt_long_outlined,
+          title: hasAnyTransactions
+              ? 'No matching transactions'
+              : 'No transactions this month',
+          subtitle: hasAnyTransactions
+              ? 'Try changing your search or filters, or select another month.'
+              : 'Add an income or expense to start tracking your money.',
+          action: hasAnyTransactions
+              ? OutlinedButton.icon(
+                  onPressed: _clearSearchAndFilters,
+                  icon: const Icon(Icons.filter_alt_off_outlined),
+                  label: const Text('Clear search and filters'),
+                )
+              : SecondaryButton(
+                  text: 'Add transaction',
+                  onPressed: () => _openTransactionSheet(),
+                ),
+        ),
       );
     }
 
@@ -699,66 +711,63 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
         .toList();
 
     if (visibleTransactions.isEmpty) {
-      return const EmptyState(
-        icon: Icons.category_outlined,
-        title: 'No categorized transactions',
-        subtitle: 'Transactions with unavailable categories cannot be shown.',
+      return const SliverFillRemaining(
+        hasScrollBody: false,
+        child: EmptyState(
+          icon: Icons.category_outlined,
+          title: 'No categorized transactions',
+          subtitle: 'Transactions with unavailable categories cannot be shown.',
+        ),
       );
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(bottom: 12, top: 2),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 7,
-                ),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  '${visibleTransactions.length} '
-                  '${visibleTransactions.length == 1 ? 'transaction' : 'transactions'}',
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ),
-              const Spacer(),
-              if (_hasActiveFilters || _searchQuery.isNotEmpty)
-                TextButton.icon(
-                  onPressed: _clearSearchAndFilters,
-                  icon: const Icon(Icons.clear, size: 16),
-                  label: const Text('Clear'),
-                ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: ListView.separated(
-            padding: const EdgeInsets.only(bottom: 24),
-            itemCount: visibleTransactions.length,
-            separatorBuilder: (_, _) => const SizedBox(height: 10),
-            itemBuilder: (context, index) {
-              final transaction = visibleTransactions[index];
-              final category = categoryById[transaction.categoryId]!;
+    return SliverList.separated(
+      itemCount: visibleTransactions.length + 1,
+      separatorBuilder: (_, _) => const SizedBox(height: 10),
+      itemBuilder: (context, index) {
+        if (index == 0) {
+          return _buildTransactionListHeader(visibleTransactions.length, theme);
+        }
+        final transaction = visibleTransactions[index - 1];
+        final category = categoryById[transaction.categoryId]!;
 
-              return TransactionListItem(
-                transaction: transaction,
-                category: category,
-                onTap: () => _openTransactionSheet(transaction: transaction),
-                onDelete: () => _deleteTransaction(transaction, uid),
-              );
-            },
+        return TransactionListItem(
+          transaction: transaction,
+          category: category,
+          onTap: () => _openTransactionSheet(transaction: transaction),
+          onDelete: () => _deleteTransaction(transaction, uid),
+        );
+      },
+    );
+  }
+
+  Widget _buildTransactionListHeader(int count, ThemeData theme) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12, top: 2),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              '$count ${count == 1 ? 'transaction' : 'transactions'}',
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
           ),
-        ),
-      ],
+          const Spacer(),
+          if (_hasActiveFilters || _searchQuery.isNotEmpty)
+            TextButton.icon(
+              onPressed: _clearSearchAndFilters,
+              icon: const Icon(Icons.clear, size: 16),
+              label: const Text('Clear'),
+            ),
+        ],
+      ),
     );
   }
 
