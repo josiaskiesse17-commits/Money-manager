@@ -141,9 +141,11 @@ class _ConvertScreenState extends ConsumerState<ConvertScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SectionHeader(
-              title: 'Convert',
-              subtitle: 'Move money between your CDF and USD wallets.',
+            Text(
+              'Move money between your CDF and USD wallets.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 16),
             settingsAsync.when(

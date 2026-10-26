@@ -1,4 +1,4 @@
-﻿import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firebase_auth_mocks/firebase_auth_mocks.dart';
 import 'package:flutter/material.dart';
@@ -18,7 +18,7 @@ import 'package:money_manager/features/transactions/presentation/transaction_lis
 import '../helpers/test_fonts.dart';
 import '../helpers/test_theme.dart';
 
-/// Layout tests: Home, Transactions and Budgets must render at phone
+/// Layout tests: Home, Activity and Budgets must render at phone
 /// (360x800) and web (1280x800) sizes without any overflow or layout
 /// exception, and [ResponsiveBody] must apply the design.md padding
 /// (16 on phones, 24 on wide screens).
@@ -139,6 +139,76 @@ void main() {
 
   const phone = Size(360, 800);
   const web = Size(1280, 800);
+
+  Future<void> pumpWithTextScale(
+    WidgetTester tester, {
+    required double scale,
+    required List<Override> overrides,
+    required Widget home,
+  }) async {
+    await tester.pumpWidget(
+      MediaQuery(
+        data: MediaQueryData(
+          size: Size(360, 800),
+          devicePixelRatio: 1.0,
+          textScaler: TextScaler.linear(scale),
+        ),
+        child: ProviderScope(
+          overrides: overrides,
+          child: MaterialApp(
+            theme: testTheme(),
+            darkTheme: testTheme(brightness: Brightness.dark),
+            home: home,
+          ),
+        ),
+      ),
+    );
+    // Let async streams deliver data (avoid pumpAndSettle: the loading
+    // spinner animates forever).
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(milliseconds: 100));
+  }
+
+  /// Text scale matrix: screens must render at every size and text scale
+  /// without overflow or exception (0.8 x Small, 1.0 x Medium, 1.5 x Large).
+  group('Text scale matrix', () {
+    final scales = <double>[0.8, 1.0, 1.5];
+    final screens = <String, Widget>{
+      'Home': const HomeScreen(),
+      'Transactions': const TransactionsScreen(),
+      'Budgets': const BudgetsScreen(),
+      'Charts': const ChartsScreen(),
+    };
+
+    for (final scale in scales) {
+      for (final sizeEntry in {'phone': phone, 'web': web}.entries) {
+        for (final screenEntry in screens.entries) {
+          testWidgets('textScale ${scale.toStringAsFixed(1)} ${screenEntry.key} '
+              '${sizeEntry.key} renders without exception', (tester) async {
+            final overrides = await signedInOverrides();
+            await tester.binding.setSurfaceSize(sizeEntry.value);
+            addTearDown(() => tester.binding.setSurfaceSize(null));
+
+            await pumpWithTextScale(
+              tester,
+              scale: scale,
+              overrides: overrides,
+              home: screenEntry.value,
+            );
+            expect(
+              tester.takeException(),
+              isNull,
+              reason:
+                  'Unexpected exception at textScale ${scale.toStringAsFixed(1)} '
+                  '${screenEntry.key} ${sizeEntry.key}',
+            );
+          });
+        }
+      }
+    }
+  });
+
   final screens = <String, Widget>{
     'Home': const HomeScreen(),
     'Transactions': const TransactionsScreen(),
@@ -508,9 +578,9 @@ void main() {
     for (final entry in <int, String>{
       0: AppRoutes.home,
       1: AppRoutes.transactions,
-      2: AppRoutes.budgets,
-      3: AppRoutes.charts,
-      4: AppRoutes.settings,
+      2: AppRoutes.convert,
+      3: AppRoutes.budgets,
+      4: AppRoutes.charts,
     }.entries) {
       testWidgets('Tap destination ${entry.value} navigates to that screen', (
         tester,

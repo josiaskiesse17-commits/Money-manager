@@ -21,8 +21,8 @@ class BudgetsScreen extends ConsumerWidget {
     final theme = Theme.of(context);
 
     if (uid == null || uid.isEmpty) {
-      return const Scaffold(
-        body: Center(child: Text('Please sign in to manage your budgets.')),
+      return const Center(
+        child: Text('Please sign in to manage your budgets.'),
       );
     }
 
@@ -31,195 +31,193 @@ class BudgetsScreen extends ConsumerWidget {
     final transactionsAsync = ref.watch(transactionProvider(uid));
     final settingsAsync = ref.watch(settingsProvider(uid));
 
-    return Scaffold(
-      body: ResponsiveBody(
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.only(bottom: 32),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildHeader(context, ref),
-                const SizedBox(height: 24),
-                _buildMonthBanner(context, selectedMonth),
-                const SizedBox(height: 24),
-                budgetsAsync.when(
-                  loading: () => const _LoadingState(),
-                  error: (error, stackTrace) => _ErrorState(
-                    message: 'Could not load your budgets.',
-                    onRetry: () {
-                      ref.invalidate(budgetProvider(uid));
-                    },
-                  ),
-                  data: (budgets) {
-                    return categoriesAsync.when(
-                      loading: () => const _LoadingState(),
-                      error: (error, stackTrace) => _ErrorState(
-                        message: 'Could not load your categories.',
-                        onRetry: () {
-                          ref.invalidate(categoryProvider(uid));
-                        },
-                      ),
-                      data: (categories) {
-                        return transactionsAsync.when(
-                          loading: () => const _LoadingState(),
-                          error: (error, stackTrace) => _ErrorState(
-                            message: 'Could not load your transactions.',
-                            onRetry: () {
-                              ref.invalidate(transactionProvider(uid));
-                            },
-                          ),
-                          data: (transactions) {
-                            return settingsAsync.when(
-                              loading: () => const _LoadingState(),
-                              error: (error, stackTrace) => _ErrorState(
-                                message: 'Could not load your settings.',
-                                onRetry: () {
-                                  ref.invalidate(settingsProvider(uid));
-                                },
-                              ),
-                              data: (settings) {
-                                final expenseCategories =
-                                    categories
-                                        .where(
-                                          (category) =>
-                                              category.isExpense &&
-                                              !category.archived,
-                                        )
-                                        .toList()
-                                      ..sort(
-                                        (a, b) => a.name
-                                            .toLowerCase()
-                                            .compareTo(b.name.toLowerCase()),
-                                      );
-
-                                final budgetByCategory = <String, Budget>{
-                                  for (final budget in budgets)
-                                    budget.categoryId: budget,
-                                };
-
-                                final preferredCurrency = _validCurrency(
-                                  settings?.displayMode,
-                                  'CDF',
-                                );
-
-                                final monthStart = DateTime(
-                                  selectedMonth.year,
-                                  selectedMonth.month,
-                                );
-
-                                final monthEnd = DateTime(
-                                  selectedMonth.year,
-                                  selectedMonth.month + 1,
-                                );
-
-                                final summaries = expenseCategories.map((
-                                  category,
-                                ) {
-                                  final budget = budgetByCategory[category.id];
-
-                                  final currency = _validCurrency(
-                                    budget?.currency,
-                                    preferredCurrency,
-                                  );
-
-                                  final spent = transactions
-                                      .where(
-                                        (transaction) =>
-                                            transaction.type == 'expense' &&
-                                            transaction.categoryId ==
-                                                category.id &&
-                                            transaction.currency == currency &&
-                                            !transaction.date.isBefore(
-                                              monthStart,
-                                            ) &&
-                                            transaction.date.isBefore(monthEnd),
-                                      )
-                                      .fold<int>(
-                                        0,
-                                        (total, transaction) =>
-                                            total + transaction.amount,
-                                      );
-
-                                  return _BudgetSummary(
-                                    category: category,
-                                    budget: budget,
-                                    currency: currency,
-                                    spent: spent,
-                                  );
-                                }).toList();
-
-                                return Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    _OverviewSection(
-                                      summaries: summaries,
-                                      currency: 'CDF',
-                                    ),
-                                    if (summaries.any(
-                                      (item) => item.currency == 'USD',
-                                    )) ...[
-                                      const SizedBox(height: 12),
-                                      _OverviewSection(
-                                        summaries: summaries,
-                                        currency: 'USD',
-                                      ),
-                                    ],
-                                    const SizedBox(height: 28),
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: Text(
-                                            'Category budgets',
-                                            style: theme.textTheme.titleLarge
-                                                ?.copyWith(
-                                                  fontWeight: FontWeight.w700,
-                                                ),
-                                          ),
-                                        ),
-                                        Text(
-                                          '${summaries.where((item) => item.budget != null).length}'
-                                          ' of ${summaries.length} set',
-                                          style: theme.textTheme.bodySmall
-                                              ?.copyWith(
-                                                color: theme
-                                                    .colorScheme
-                                                    .onSurfaceVariant,
-                                              ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 12),
-                                    if (summaries.isEmpty)
-                                      const _EmptyState()
-                                    else
-                                      ...summaries.map(
-                                        (summary) => Padding(
-                                          padding: const EdgeInsets.only(
-                                            bottom: 12,
-                                          ),
-                                          child: _BudgetCard(
-                                            summary: summary,
-                                            onEdit: () => _openBudgetDialog(
-                                              context,
-                                              category: summary.category,
-                                              budget: summary.budget,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                  ],
-                                );
-                              },
-                            );
-                          },
-                        );
-                      },
-                    );
+    return ResponsiveBody(
+      child: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.only(bottom: 32),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildHeader(context, ref),
+              const SizedBox(height: 24),
+              _buildMonthBanner(context, selectedMonth),
+              const SizedBox(height: 24),
+              budgetsAsync.when(
+                loading: () => const _LoadingState(),
+                error: (error, stackTrace) => _ErrorState(
+                  message: 'Could not load your budgets.',
+                  onRetry: () {
+                    ref.invalidate(budgetProvider(uid));
                   },
                 ),
-              ],
-            ),
+                data: (budgets) {
+                  return categoriesAsync.when(
+                    loading: () => const _LoadingState(),
+                    error: (error, stackTrace) => _ErrorState(
+                      message: 'Could not load your categories.',
+                      onRetry: () {
+                        ref.invalidate(categoryProvider(uid));
+                      },
+                    ),
+                    data: (categories) {
+                      return transactionsAsync.when(
+                        loading: () => const _LoadingState(),
+                        error: (error, stackTrace) => _ErrorState(
+                          message: 'Could not load your transactions.',
+                          onRetry: () {
+                            ref.invalidate(transactionProvider(uid));
+                          },
+                        ),
+                        data: (transactions) {
+                          return settingsAsync.when(
+                            loading: () => const _LoadingState(),
+                            error: (error, stackTrace) => _ErrorState(
+                              message: 'Could not load your settings.',
+                              onRetry: () {
+                                ref.invalidate(settingsProvider(uid));
+                              },
+                            ),
+                            data: (settings) {
+                              final expenseCategories =
+                                  categories
+                                      .where(
+                                        (category) =>
+                                            category.isExpense &&
+                                            !category.archived,
+                                      )
+                                      .toList()
+                                    ..sort(
+                                      (a, b) => a.name.toLowerCase().compareTo(
+                                        b.name.toLowerCase(),
+                                      ),
+                                    );
+
+                              final budgetByCategory = <String, Budget>{
+                                for (final budget in budgets)
+                                  budget.categoryId: budget,
+                              };
+
+                              final preferredCurrency = _validCurrency(
+                                settings?.displayMode,
+                                'CDF',
+                              );
+
+                              final monthStart = DateTime(
+                                selectedMonth.year,
+                                selectedMonth.month,
+                              );
+
+                              final monthEnd = DateTime(
+                                selectedMonth.year,
+                                selectedMonth.month + 1,
+                              );
+
+                              final summaries = expenseCategories.map((
+                                category,
+                              ) {
+                                final budget = budgetByCategory[category.id];
+
+                                final currency = _validCurrency(
+                                  budget?.currency,
+                                  preferredCurrency,
+                                );
+
+                                final spent = transactions
+                                    .where(
+                                      (transaction) =>
+                                          transaction.type == 'expense' &&
+                                          transaction.categoryId ==
+                                              category.id &&
+                                          transaction.currency == currency &&
+                                          !transaction.date.isBefore(
+                                            monthStart,
+                                          ) &&
+                                          transaction.date.isBefore(monthEnd),
+                                    )
+                                    .fold<int>(
+                                      0,
+                                      (total, transaction) =>
+                                          total + transaction.amount,
+                                    );
+
+                                return _BudgetSummary(
+                                  category: category,
+                                  budget: budget,
+                                  currency: currency,
+                                  spent: spent,
+                                );
+                              }).toList();
+
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _OverviewSection(
+                                    summaries: summaries,
+                                    currency: 'CDF',
+                                  ),
+                                  if (summaries.any(
+                                    (item) => item.currency == 'USD',
+                                  )) ...[
+                                    const SizedBox(height: 12),
+                                    _OverviewSection(
+                                      summaries: summaries,
+                                      currency: 'USD',
+                                    ),
+                                  ],
+                                  const SizedBox(height: 28),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          'Category budgets',
+                                          style: theme.textTheme.titleLarge
+                                              ?.copyWith(
+                                                fontWeight: FontWeight.w700,
+                                              ),
+                                        ),
+                                      ),
+                                      Text(
+                                        '${summaries.where((item) => item.budget != null).length}'
+                                        ' of ${summaries.length} set',
+                                        style: theme.textTheme.bodySmall
+                                            ?.copyWith(
+                                              color: theme
+                                                  .colorScheme
+                                                  .onSurfaceVariant,
+                                            ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 12),
+                                  if (summaries.isEmpty)
+                                    const _EmptyState()
+                                  else
+                                    ...summaries.map(
+                                      (summary) => Padding(
+                                        padding: const EdgeInsets.only(
+                                          bottom: 12,
+                                        ),
+                                        child: _BudgetCard(
+                                          summary: summary,
+                                          onEdit: () => _openBudgetDialog(
+                                            context,
+                                            category: summary.category,
+                                            budget: summary.budget,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              );
+                            },
+                          );
+                        },
+                      );
+                    },
+                  );
+                },
+              ),
+            ],
           ),
         ),
       ),
@@ -234,24 +232,12 @@ class BudgetsScreen extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Budgets',
-                style: theme.textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.7,
-                ),
-              ),
-              const SizedBox(height: 5),
-              Text(
-                'Plan your spending and stay on track.',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
+          child: Text(
+            'Plan your spending and stay on track.',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+            overflow: TextOverflow.ellipsis,
           ),
         ),
         const SizedBox(width: 12),

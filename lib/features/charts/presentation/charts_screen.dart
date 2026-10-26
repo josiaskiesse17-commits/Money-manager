@@ -47,113 +47,104 @@ class ChartsScreen extends ConsumerWidget {
     final width = MediaQuery.sizeOf(context).width;
     final isPhone = width < 600;
 
-    return Scaffold(
-      body: ResponsiveBody(
-        maxWidth: width >= 900 ? 1040 : null,
-        padding: EdgeInsets.only(
-          left: isPhone ? 16 : 24,
-          top: 0,
-          right: isPhone ? 16 : 24,
-          bottom: isPhone ? 16 : 24,
-        ),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SectionHeader(
-                  title: 'Charts',
-                  subtitle: 'Spending breakdown for the selected month.',
+    return ResponsiveBody(
+      maxWidth: width >= 900 ? 1040 : null,
+      padding: EdgeInsets.only(
+        left: isPhone ? 16 : 24,
+        top: 0,
+        right: isPhone ? 16 : 24,
+        bottom: isPhone ? 16 : 24,
+      ),
+      child: SafeArea(
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Spending breakdown for the selected month.',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
-                const SizedBox(height: 16),
-                transactionsAsync.when(
-                  data: (transactions) => categoriesAsync.when(
-                    data: (categories) => settingsAsync.when(
-                      data: (setting) {
-                        final expenseTxns = transactions.where((t) {
-                          return t.type == 'expense' &&
-                              isInMonth(t.date, selectedMonth);
-                        }).toList();
+              ),
+              const SizedBox(height: 16),
+              transactionsAsync.when(
+                data: (transactions) => categoriesAsync.when(
+                  data: (categories) => settingsAsync.when(
+                    data: (setting) {
+                      final expenseTxns = transactions.where((t) {
+                        return t.type == 'expense' &&
+                            isInMonth(t.date, selectedMonth);
+                      }).toList();
 
-                        if (expenseTxns.isEmpty) {
-                          return const EmptyState(
-                            icon: Icons.show_chart,
-                            title: 'No expenses this month',
-                            subtitle: 'Add expenses to see charts.',
-                          );
-                        }
-
-                        // displayMode is cdf | usd | combined (combined = CDF).
-                        final target = targetCurrencyFor(
-                          setting?.displayMode ?? 'combined',
+                      if (expenseTxns.isEmpty) {
+                        return const EmptyState(
+                          icon: Icons.show_chart,
+                          title: 'No expenses this month',
+                          subtitle: 'Add expenses to see charts.',
                         );
+                      }
 
-                        final categorySpending = spendingByCategory(
-                          expenses: expenseTxns,
-                          target: target,
-                        );
+                      // displayMode is cdf | usd | combined (combined = CDF).
+                      final target = targetCurrencyFor(
+                        setting?.displayMode ?? 'combined',
+                      );
 
-                        final totalSpending = categorySpending.values.fold<int>(
-                          0,
-                          (sum, v) => sum + v,
-                        );
+                      final categorySpending = spendingByCategory(
+                        expenses: expenseTxns,
+                        target: target,
+                      );
 
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const SectionHeader(
-                              title: 'Spending by category',
-                              subtitle: 'Share of each category.',
-                            ),
-                            const SizedBox(height: 16),
-                            LayoutBuilder(
-                              builder: (context, constraints) {
-                                final isWide = constraints.maxWidth >= 600;
-                                return DonutChart(
-                                  categorySpending: categorySpending,
-                                  categories: categories,
-                                  total: totalSpending,
-                                  currency: target,
-                                  isWide: isWide,
-                                );
-                              },
-                            ),
-                            const SizedBox(height: 24),
-                            const SectionHeader(
-                              title: 'Daily spending',
-                              subtitle: 'Bar chart shows spending per day.',
-                            ),
-                            const SizedBox(height: 16),
-                            SizedBox(
-                              height: isPhone ? 200 : 240,
-                              child: DailyBarsChart(
-                                transactions: expenseTxns,
+                      final totalSpending = categorySpending.values.fold<int>(
+                        0,
+                        (sum, v) => sum + v,
+                      );
+
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SectionHeader(
+                            title: 'Spending by category',
+                            subtitle: 'Share of each category.',
+                          ),
+                          const SizedBox(height: 16),
+                          LayoutBuilder(
+                            builder: (context, constraints) {
+                              final isWide = constraints.maxWidth >= 600;
+                              return DonutChart(
+                                categorySpending: categorySpending,
                                 categories: categories,
-                                month: selectedMonth,
-                                displayCurrency: target,
-                              ),
+                                total: totalSpending,
+                                currency: target,
+                                isWide: isWide,
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 24),
+                          const SectionHeader(
+                            title: 'Daily spending',
+                            subtitle: 'Bar chart shows spending per day.',
+                          ),
+                          const SizedBox(height: 16),
+                          SizedBox(
+                            height: isPhone ? 200 : 240,
+                            child: DailyBarsChart(
+                              transactions: expenseTxns,
+                              categories: categories,
+                              month: selectedMonth,
+                              displayCurrency: target,
                             ),
-                          ],
-                        );
-                      },
-                      loading: () => const SizedBox(
-                        height: 160,
-                        child: Center(child: CircularProgressIndicator()),
-                      ),
-                      error: (_, _) => ErrorBanner(
-                        message: 'Failed to load settings.',
-                        fix: 'Check your connection and try again.',
-                        onRetry: () => ref.refresh(settingsProvider(uid)),
-                      ),
-                    ),
+                          ),
+                        ],
+                      );
+                    },
                     loading: () => const SizedBox(
                       height: 160,
                       child: Center(child: CircularProgressIndicator()),
                     ),
                     error: (_, _) => ErrorBanner(
-                      message: 'Failed to load categories.',
+                      message: 'Failed to load settings.',
                       fix: 'Check your connection and try again.',
-                      onRetry: () => ref.refresh(categoryProvider(uid)),
+                      onRetry: () => ref.refresh(settingsProvider(uid)),
                     ),
                   ),
                   loading: () => const SizedBox(
@@ -161,13 +152,22 @@ class ChartsScreen extends ConsumerWidget {
                     child: Center(child: CircularProgressIndicator()),
                   ),
                   error: (_, _) => ErrorBanner(
-                    message: 'Failed to load transactions.',
+                    message: 'Failed to load categories.',
                     fix: 'Check your connection and try again.',
-                    onRetry: () => ref.refresh(transactionProvider(uid)),
+                    onRetry: () => ref.refresh(categoryProvider(uid)),
                   ),
                 ),
-              ],
-            ),
+                loading: () => const SizedBox(
+                  height: 160,
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+                error: (_, _) => ErrorBanner(
+                  message: 'Failed to load transactions.',
+                  fix: 'Check your connection and try again.',
+                  onRetry: () => ref.refresh(transactionProvider(uid)),
+                ),
+              ),
+            ],
           ),
         ),
       ),

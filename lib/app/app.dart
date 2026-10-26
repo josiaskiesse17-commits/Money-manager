@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:money_manager/app/error_reporter.dart';
@@ -110,7 +111,10 @@ class _AppState extends State<App> with WidgetsBindingObserver {
           themeMode: themeMode,
           builder: (context, child) {
             if (lockEnabled && lockNotifier.isLocked) {
-              return const _LockScreenContent();
+              return AnnotatedRegion<SystemUiOverlayStyle>(
+                value: appSystemOverlayStyle(context),
+                child: const _LockScreenContent(),
+              );
             }
 
             return child ?? const SizedBox.shrink();
@@ -253,144 +257,149 @@ class _LockScreenContentState extends ConsumerState<_LockScreenContent> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Scaffold(
-      backgroundColor: colorScheme.surface,
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 440),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 96,
-                    height: 96,
-                    decoration: BoxDecoration(
-                      color: colorScheme.primaryContainer,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.lock_outline_rounded,
-                      size: 44,
-                      color: colorScheme.onPrimaryContainer,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    'Money Manager',
-                    style: Theme.of(context).textTheme.headlineSmall
-                        ?.copyWith(fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Enter your PIN to continue.',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyLarge
-                        ?.copyWith(color: colorScheme.onSurfaceVariant),
-                  ),
-                  if (_error != null) ...[
-                    const SizedBox(height: 20),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: appSystemOverlayStyle(context),
+      child: Scaffold(
+        backgroundColor: colorScheme.surface,
+        body: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 440),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
                     Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(12),
+                      width: 96,
+                      height: 96,
                       decoration: BoxDecoration(
-                        color: colorScheme.errorContainer,
-                        borderRadius: BorderRadius.circular(12),
+                        color: colorScheme.primaryContainer,
+                        shape: BoxShape.circle,
                       ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(
-                            Icons.error_outline,
-                            color: colorScheme.onErrorContainer,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              _error!,
-                              style: TextStyle(
-                                color: colorScheme.onErrorContainer,
+                      child: Icon(
+                        Icons.lock_outline_rounded,
+                        size: 44,
+                        color: colorScheme.onPrimaryContainer,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      'Money Manager',
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Enter your PIN to continue.',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyLarge
+                          ?.copyWith(color: colorScheme.onSurfaceVariant),
+                    ),
+                    if (_error != null) ...[
+                      const SizedBox(height: 20),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: colorScheme.errorContainer,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(
+                              Icons.error_outline,
+                              color: colorScheme.onErrorContainer,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _error!,
+                                style: TextStyle(
+                                  color: colorScheme.onErrorContainer,
+                                ),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 28),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(4, (index) {
-                      final filled = index < _pinCtrl.text.length;
-
-                      return Container(
-                        width: 18,
-                        height: 18,
-                        margin: const EdgeInsets.symmetric(horizontal: 8),
-                        decoration: BoxDecoration(
-                          color: filled
-                              ? colorScheme.primary
-                              : colorScheme.outlineVariant,
-                          shape: BoxShape.circle,
+                          ],
                         ),
-                      );
-                    }),
-                  ),
-                  const SizedBox(height: 20),
-                  TextField(
-                    controller: _pinCtrl,
-                    autofocus: true,
-                    obscureText: true,
-                    keyboardType: TextInputType.number,
-                    maxLength: 4,
-                    textAlign: TextAlign.center,
-                    enabled: !_authenticating,
-                    style: const TextStyle(fontSize: 24, letterSpacing: 8),
-                    decoration: const InputDecoration(
-                      labelText: 'Four-digit PIN',
-                      counterText: '',
-                      border: OutlineInputBorder(),
-                    ),
-                    onChanged: (value) {
-                      setState(() => _error = null);
+                      ),
+                    ],
+                    const SizedBox(height: 28),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(4, (index) {
+                        final filled = index < _pinCtrl.text.length;
 
-                      if (value.length == 4) {
-                        _unlock();
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton(
-                      onPressed: _authenticating ? null : _unlock,
-                      child: _authenticating
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Text('Unlock'),
+                        return Container(
+                          width: 18,
+                          height: 18,
+                          margin: const EdgeInsets.symmetric(horizontal: 8),
+                          decoration: BoxDecoration(
+                            color: filled
+                                ? colorScheme.primary
+                                : colorScheme.outlineVariant,
+                            shape: BoxShape.circle,
+                          ),
+                        );
+                      }),
                     ),
-                  ),
-                  if (!kIsWeb) ...[
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 20),
+                    TextField(
+                      controller: _pinCtrl,
+                      autofocus: true,
+                      obscureText: true,
+                      keyboardType: TextInputType.number,
+                      maxLength: 4,
+                      textAlign: TextAlign.center,
+                      enabled: !_authenticating,
+                      style: const TextStyle(fontSize: 24, letterSpacing: 8),
+                      decoration: const InputDecoration(
+                        labelText: 'Four-digit PIN',
+                        counterText: '',
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (value) {
+                        setState(() => _error = null);
+
+                        if (value.length == 4) {
+                          _unlock();
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 16),
                     SizedBox(
                       width: double.infinity,
-                      child: SecondaryButton(
-                        text: 'Use biometrics',
-                        onPressed: _authenticating ? null : _tryBiometrics,
+                      child: FilledButton(
+                        onPressed: _authenticating ? null : _unlock,
+                        child: _authenticating
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text('Unlock'),
                       ),
                     ),
+                    if (!kIsWeb) ...[
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: SecondaryButton(
+                          text: 'Use biometrics',
+                          onPressed: _authenticating ? null : _tryBiometrics,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 12),
+                    TextButton(
+                      onPressed: _authenticating ? null : _forgotPin,
+                      child: const Text('Forgot PIN?'),
+                    ),
                   ],
-                  const SizedBox(height: 12),
-                  TextButton(
-                    onPressed: _authenticating ? null : _forgotPin,
-                    child: const Text('Forgot PIN?'),
-                  ),
-                ],
+                ),
               ),
             ),
           ),

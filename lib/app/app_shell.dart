@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:money_manager/app/routes.dart';
+import 'package:money_manager/app/theme.dart';
 import 'package:money_manager/features/transactions/presentation/add_edit_transaction_sheet.dart';
 
-/// Navigation shell for the app.
+/// Navigation shell for the tab screens.
 ///
-/// Bottom NavigationBar under 840px wide, NavigationRail at 840px and above.
-/// Supports horizontal swiping between the five main destinations.
+/// Owns the single [Scaffold] and [AppBar] of every tab screen: the screen
+/// title comes from the route, and a Settings gear opens [AppRoutes.settings].
+/// Bottom [NavigationBar] under 840px wide, [NavigationRail] at 840px and
+/// above. Destinations: Home, Activity, Convert, Budgets, Charts.
 class AppShell extends StatefulWidget {
   final Widget child;
   final String currentRoute;
@@ -40,16 +44,41 @@ class _AppShellState extends State<AppShell> {
     }
   }
 
-  int _routeToIndex(String route) {
-    if (route == AppRoutes.home) return 0;
-    if (route == AppRoutes.transactions) return 1;
-    if (route == AppRoutes.convert) return 2;
-    if (route == AppRoutes.budgets) return 3;
-    if (route == AppRoutes.charts) return 4;
-    if (route == AppRoutes.settings) return 5;
-    if (route == AppRoutes.reports) return 5;
+  static int _routeToIndex(String route) {
+    switch (route) {
+      case AppRoutes.home:
+        return 0;
+      case AppRoutes.transactions:
+        return 1;
+      case AppRoutes.convert:
+        return 2;
+      case AppRoutes.budgets:
+        return 3;
+      case AppRoutes.charts:
+        return 4;
+      default:
+        return 0;
+    }
+  }
 
-    return 0;
+  /// Screen title shown in the [AppBar], taken from the current route.
+  static String _screenTitle(String route) {
+    switch (route) {
+      case AppRoutes.home:
+        return 'Home';
+      case AppRoutes.transactions:
+        return 'Activity';
+      case AppRoutes.convert:
+        return 'Convert';
+      case AppRoutes.budgets:
+        return 'Budgets';
+      case AppRoutes.charts:
+        return 'Charts';
+      case AppRoutes.reports:
+        return 'Reports';
+      default:
+        return 'Home';
+    }
   }
 
   @override
@@ -66,7 +95,7 @@ class _AppShellState extends State<AppShell> {
       NavigationDestination(
         icon: Icon(Icons.receipt_long_outlined),
         selectedIcon: Icon(Icons.receipt_long),
-        label: 'Transactions',
+        label: 'Activity',
       ),
       NavigationDestination(
         icon: Icon(Icons.currency_exchange_outlined),
@@ -82,11 +111,6 @@ class _AppShellState extends State<AppShell> {
         icon: Icon(Icons.bar_chart_outlined),
         selectedIcon: Icon(Icons.bar_chart),
         label: 'Charts',
-      ),
-      NavigationDestination(
-        icon: Icon(Icons.settings_outlined),
-        selectedIcon: Icon(Icons.settings),
-        label: 'Settings',
       ),
     ];
 
@@ -108,71 +132,99 @@ class _AppShellState extends State<AppShell> {
       child: widget.child,
     );
 
-    return Scaffold(
-      floatingActionButton: widget.currentRoute == AppRoutes.home
-          ? FloatingActionButton(
-              tooltip: 'Add transaction',
-              onPressed: () => showModalBottomSheet<void>(
-                context: context,
-                isScrollControlled: true,
-                useSafeArea: true,
-                builder: (_) => const AddEditTransactionSheet(),
-              ),
-              child: const Icon(Icons.add),
-            )
-          : null,
-      body: isWide
-          ? Row(
-              children: [
-                NavigationRail(
-                  selectedIndex: _selectedIndex,
-                  onDestinationSelected: _navigateTo,
-                  labelType: NavigationRailLabelType.all,
-                  destinations: const [
-                    NavigationRailDestination(
-                      icon: Icon(Icons.home_outlined),
-                      selectedIcon: Icon(Icons.home),
-                      label: Text('Home'),
-                    ),
-                    NavigationRailDestination(
-                      icon: Icon(Icons.receipt_long_outlined),
-                      selectedIcon: Icon(Icons.receipt_long),
-                      label: Text('Transactions'),
-                    ),
-                    NavigationRailDestination(
-                      icon: Icon(Icons.currency_exchange_outlined),
-                      selectedIcon: Icon(Icons.currency_exchange),
-                      label: Text('Convert'),
-                    ),
-                    NavigationRailDestination(
-                      icon: Icon(Icons.account_balance_wallet_outlined),
-                      selectedIcon: Icon(Icons.account_balance_wallet),
-                      label: Text('Budgets'),
-                    ),
-                    NavigationRailDestination(
-                      icon: Icon(Icons.bar_chart_outlined),
-                      selectedIcon: Icon(Icons.bar_chart),
-                      label: Text('Charts'),
-                    ),
-                    NavigationRailDestination(
-                      icon: Icon(Icons.settings_outlined),
-                      selectedIcon: Icon(Icons.settings),
-                      label: Text('Settings'),
-                    ),
-                  ],
-                ),
-                const VerticalDivider(thickness: 1, width: 1),
-                Expanded(child: body),
-              ],
-            )
-          : body,
-      bottomNavigationBar: isWide
-          ? null
-          : NavigationBar(
-              selectedIndex: _selectedIndex,
-              onDestinationSelected: _navigateTo,
-              destinations: destinations,
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: appSystemOverlayStyle(context),
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(_screenTitle(widget.currentRoute)),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.settings),
+              tooltip: 'Settings',
+              onPressed: () => context.push(AppRoutes.settings),
             ),
+          ],
+        ),
+        floatingActionButton: widget.currentRoute == AppRoutes.home
+            ? FloatingActionButton(
+                tooltip: 'Add transaction',
+                onPressed: () => showModalBottomSheet<void>(
+                  context: context,
+                  isScrollControlled: true,
+                  useSafeArea: true,
+                  builder: (_) => const AddEditTransactionSheet(),
+                ),
+                child: const Icon(Icons.add),
+              )
+            : null,
+        body: isWide
+            ? Row(
+                children: [
+                  NavigationRail(
+                    selectedIndex: _selectedIndex,
+                    onDestinationSelected: _navigateTo,
+                    labelType: NavigationRailLabelType.all,
+                    destinations: const [
+                      NavigationRailDestination(
+                        icon: Icon(Icons.home_outlined),
+                        selectedIcon: Icon(Icons.home),
+                        label: Text(
+                          'Home',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      NavigationRailDestination(
+                        icon: Icon(Icons.receipt_long_outlined),
+                        selectedIcon: Icon(Icons.receipt_long),
+                        label: Text(
+                          'Activity',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      NavigationRailDestination(
+                        icon: Icon(Icons.currency_exchange_outlined),
+                        selectedIcon: Icon(Icons.currency_exchange),
+                        label: Text(
+                          'Convert',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      NavigationRailDestination(
+                        icon: Icon(Icons.account_balance_wallet_outlined),
+                        selectedIcon: Icon(Icons.account_balance_wallet),
+                        label: Text(
+                          'Budgets',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      NavigationRailDestination(
+                        icon: Icon(Icons.bar_chart_outlined),
+                        selectedIcon: Icon(Icons.bar_chart),
+                        label: Text(
+                          'Charts',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const VerticalDivider(thickness: 1, width: 1),
+                  Expanded(child: body),
+                ],
+              )
+            : body,
+        bottomNavigationBar: isWide
+            ? null
+            : NavigationBar(
+                selectedIndex: _selectedIndex,
+                onDestinationSelected: _navigateTo,
+                destinations: destinations,
+              ),
+      ),
     );
   }
 
@@ -184,7 +236,7 @@ class _AppShellState extends State<AppShell> {
 
     if (distance < 0 || velocity < -_minimumSwipeVelocity) {
       // Swipe left: move to the next main destination.
-      if (_selectedIndex < 5) {
+      if (_selectedIndex < 4) {
         _navigateTo(_selectedIndex + 1);
       }
     } else if (distance > 0 || velocity > _minimumSwipeVelocity) {
@@ -196,7 +248,7 @@ class _AppShellState extends State<AppShell> {
   }
 
   void _navigateTo(int index) {
-    if (index < 0 || index > 5 || index == _selectedIndex) {
+    if (index < 0 || index > 4 || index == _selectedIndex) {
       return;
     }
 
@@ -206,7 +258,6 @@ class _AppShellState extends State<AppShell> {
       AppRoutes.convert,
       AppRoutes.budgets,
       AppRoutes.charts,
-      AppRoutes.settings,
     ];
 
     context.go(routes[index]);

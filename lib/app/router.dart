@@ -92,10 +92,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: AppRoutes.settings,
-        builder: (_, _) => AppShell(
-          currentRoute: AppRoutes.settings,
-          child: const SettingsScreen(),
-        ),
+        builder: (_, _) => const SettingsScreen(),
       ),
       GoRoute(
         path: AppRoutes.pinSetup,

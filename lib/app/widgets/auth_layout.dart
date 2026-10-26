@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:money_manager/app/theme.dart';
 
 /// Shared layout for auth screens (sign in, sign up, reset password).
 ///
@@ -25,10 +27,15 @@ class AuthLayout extends StatelessWidget {
     final primary = Theme.of(context).colorScheme.primary;
     final onPrimary = Theme.of(context).colorScheme.onPrimary;
 
-    return Scaffold(
-      body: isWide
-          ? _wideLayout(primary, onPrimary)
-          : _phoneLayout(primary, onPrimary),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: appSystemOverlayStyle(context),
+      child: Scaffold(
+        body: SafeArea(
+          child: isWide
+              ? _wideLayout(primary, onPrimary)
+              : _phoneLayout(primary, onPrimary),
+        ),
+      ),
     );
   }
 

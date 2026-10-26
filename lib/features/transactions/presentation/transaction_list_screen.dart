@@ -10,7 +10,6 @@ import 'package:money_manager/app/widgets/empty_state.dart';
 import 'package:money_manager/app/widgets/error_banner.dart';
 import 'package:money_manager/app/widgets/responsive_body.dart';
 import 'package:money_manager/app/widgets/secondary_button.dart';
-import 'package:money_manager/app/widgets/section_header.dart';
 import 'package:money_manager/app/widgets/transaction_list_item.dart';
 import 'package:money_manager/data/models/category.dart';
 import 'package:money_manager/data/models/transaction.dart';
@@ -49,9 +48,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     final uid = user?.uid ?? '';
 
     if (uid.isEmpty) {
-      return const Scaffold(
-        body: SafeArea(child: Center(child: CircularProgressIndicator())),
-      );
+      return const Center(child: CircularProgressIndicator());
     }
 
     final selectedMonth = ref.watch(selectedMonthProvider);
@@ -61,69 +58,68 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     final textScale = MediaQuery.textScalerOf(context).scale(1.0);
     final compactSpacing = textScale > 1.5;
 
-    return Scaffold(
-      body: ResponsiveBody(
-        child: SafeArea(
-          child: CustomScrollView(
-            slivers: [
-              SliverToBoxAdapter(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SectionHeader(
-                      title: 'Transactions',
-                      subtitle:
-                          'Track your income and expenses, all in one place.',
+    return ResponsiveBody(
+      child: SafeArea(
+        child: CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Track your income and expenses, all in one place.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
-                    SizedBox(height: compactSpacing ? 12 : 24),
-                    _buildMonthNavigation(selectedMonth),
-                    SizedBox(height: compactSpacing ? 12 : 20),
-                    _buildSearchAndFilters(context),
-                    const SizedBox(height: 12),
-                  ],
-                ),
-              ),
-              SliverFillRemaining(
-                hasScrollBody: true,
-                child: transactionsAsync.when(
-                  loading: () => const _LoadingState(),
-                  error: (error, stackTrace) => ErrorBanner(
-                    message: 'Could not load transactions.',
-                    fix: 'Check your connection and try again.',
-                    onRetry: () {
-                      ref.invalidate(transactionProvider(uid));
-                    },
                   ),
-                  data: (transactions) {
-                    return categoriesAsync.when(
-                      loading: () => const _LoadingState(),
-                      error: (error, stackTrace) => ErrorBanner(
-                        message: 'Could not load categories.',
-                        fix: 'Check your connection and try again.',
-                        onRetry: () {
-                          ref.invalidate(categoryProvider(uid));
-                        },
-                      ),
-                      data: (categories) {
-                        final filteredTransactions = _filterTransactions(
-                          transactions: transactions,
-                          categories: categories,
-                          selectedMonth: selectedMonth,
-                        );
-
-                        return _buildTransactionList(
-                          transactions: filteredTransactions,
-                          allTransactions: transactions,
-                          categories: categories,
-                          uid: uid,
-                        );
-                      },
-                    );
+                  SizedBox(height: compactSpacing ? 12 : 24),
+                  _buildMonthNavigation(selectedMonth),
+                  SizedBox(height: compactSpacing ? 12 : 20),
+                  _buildSearchAndFilters(context),
+                  const SizedBox(height: 12),
+                ],
+              ),
+            ),
+            SliverFillRemaining(
+              hasScrollBody: true,
+              child: transactionsAsync.when(
+                loading: () => const _LoadingState(),
+                error: (error, stackTrace) => ErrorBanner(
+                  message: 'Could not load transactions.',
+                  fix: 'Check your connection and try again.',
+                  onRetry: () {
+                    ref.invalidate(transactionProvider(uid));
                   },
                 ),
+                data: (transactions) {
+                  return categoriesAsync.when(
+                    loading: () => const _LoadingState(),
+                    error: (error, stackTrace) => ErrorBanner(
+                      message: 'Could not load categories.',
+                      fix: 'Check your connection and try again.',
+                      onRetry: () {
+                        ref.invalidate(categoryProvider(uid));
+                      },
+                    ),
+                    data: (categories) {
+                      final filteredTransactions = _filterTransactions(
+                        transactions: transactions,
+                        categories: categories,
+                        selectedMonth: selectedMonth,
+                      );
+
+                      return _buildTransactionList(
+                        transactions: filteredTransactions,
+                        allTransactions: transactions,
+                        categories: categories,
+                        uid: uid,
+                      );
+                    },
+                  );
+                },
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

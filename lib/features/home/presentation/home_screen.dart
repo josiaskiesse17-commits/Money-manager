@@ -10,7 +10,6 @@ import 'package:money_manager/app/widgets/app_card.dart';
 import 'package:money_manager/app/widgets/empty_state.dart';
 import 'package:money_manager/app/widgets/error_banner.dart';
 import 'package:money_manager/app/widgets/responsive_body.dart';
-import 'package:money_manager/app/widgets/section_header.dart';
 import 'package:money_manager/app/widgets/transaction_list_item.dart';
 import 'package:money_manager/data/models/category.dart';
 import 'package:money_manager/data/models/setting.dart';
@@ -60,9 +59,11 @@ class HomeScreen extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SectionHeader(
-                title: 'Home',
-                subtitle: 'Your money at a glance.',
+              Text(
+                'Your money at a glance.',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
               const SizedBox(height: 8),
               _buildMonthNavigation(ref, context, selectedMonth),

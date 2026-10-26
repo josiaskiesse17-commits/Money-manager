@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 /// Money Manager design system theme.
 ///
@@ -158,6 +159,24 @@ class AppTheme {
       appBarTheme: const AppBarTheme(centerTitle: true, elevation: 0),
     );
   }
+}
+
+/// Status bar and navigation bar overlay style with icons that contrast
+/// against the current theme brightness (dark icons in light theme, light
+/// icons in dark theme).
+SystemUiOverlayStyle appSystemOverlayStyle(BuildContext context) {
+  final brightness = Theme.of(context).brightness;
+  return SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    statusBarBrightness: brightness,
+    statusBarIconBrightness: brightness == Brightness.light
+        ? Brightness.dark
+        : Brightness.light,
+    systemNavigationBarColor: Colors.transparent,
+    systemNavigationBarIconBrightness: brightness == Brightness.light
+        ? Brightness.dark
+        : Brightness.light,
+  );
 }
 
 final _textTheme = const TextTheme(
