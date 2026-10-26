@@ -40,14 +40,16 @@ flutter:
 flutter_icons:
   android: true
   ios: true
-  image_path: 'assets/icon/icon.png'
+  image_path: 'assets/icon/cleaned/app_icon.png'
   adaptive_icon_background: '#0F5FA8'
-  adaptive_icon_foreground: 'assets/icon/icon_foreground.png'
+  adaptive_icon_foreground: 'assets/icon/cleaned/app_icon.png'
 
 flutter_native_splash:
-  color: '#FFFFFF'
+  color: '#0F5FA8'
   android: true
   ios: true
   android_12:
-    image: 'assets/icon/icon_splash.png'
-    color: '#FFFFFF'
+    image: 'assets/icon/cleaned/logo.png'
+    color: '#0F5FA8'
+  web: true
+  image: 'assets/icon/cleaned/logo.png'
