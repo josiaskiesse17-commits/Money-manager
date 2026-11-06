@@ -19,7 +19,6 @@ void main() async {
       persistenceEnabled: true,
     );
   }
-
   runApp(ProviderScope(child: const App()));
 
   // Remove the HTML web splash screen after Flutter renders its first frame.

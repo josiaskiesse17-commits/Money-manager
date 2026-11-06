@@ -2,6 +2,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:money_manager/data/models/budget.dart';
 import 'package:money_manager/data/models/category.dart';
 import 'package:money_manager/data/models/conversion.dart';
+import 'package:money_manager/data/models/debt.dart';
+import 'package:money_manager/data/models/debt_payment.dart';
 import 'package:money_manager/data/models/setting.dart';
 import 'package:money_manager/data/models/transaction.dart';
 import 'package:money_manager/data/models/wallet.dart';
@@ -150,6 +152,87 @@ void main() {
       final map = original.toMap();
       final restored = Budget.fromMap('cat_food', map);
       expect(restored, original);
+    });
+  });
+
+  group('Debt round trip', () {
+    final now = DateTime(2026, 2, 10, 9, 0, 0);
+    final due = DateTime(2026, 3, 10, 9, 0, 0);
+
+    test('toMap then fromMap preserves all fields including dueDate', () {
+      final original = Debt(
+        id: 'debt_1',
+        name: 'Phone loan',
+        direction: 'owe',
+        currency: 'USD',
+        principal: 50000,
+        remaining: 30000,
+        dueDate: due,
+        note: 'Paid monthly',
+        archived: false,
+        createdAt: now,
+      );
+      final map = original.toMap();
+      final restored = Debt.fromMap('debt_1', map);
+      expect(restored, original);
+    });
+
+    test('toMap then fromMap with null dueDate and null note', () {
+      final original = Debt(
+        id: 'debt_2',
+        name: 'Personal loan',
+        direction: 'owed',
+        currency: 'CDF',
+        principal: 100000,
+        remaining: 100000,
+        dueDate: null,
+        note: null,
+        archived: true,
+        createdAt: now,
+      );
+      final map = original.toMap();
+      final restored = Debt.fromMap('debt_2', map);
+      expect(restored.dueDate, isNull);
+      expect(restored.note, isNull);
+      expect(restored.principal, original.principal);
+      expect(restored.direction, 'owed');
+      expect(restored.archived, true);
+    });
+  });
+
+  group('DebtPayment round trip', () {
+    final now = DateTime(2026, 2, 15, 14, 0, 0);
+
+    test('toMap then fromMap preserves all fields', () {
+      final original = DebtPayment(
+        id: 'pay_1',
+        debtId: 'debt_1',
+        amount: 5000,
+        currency: 'USD',
+        date: now,
+        note: 'Partial payment',
+        createdAt: now,
+      );
+      final map = original.toMap();
+      final restored = DebtPayment.fromMap('pay_1', map);
+      expect(restored, original);
+    });
+
+    test('toMap then fromMap with null note', () {
+      final original = DebtPayment(
+        id: 'pay_2',
+        debtId: 'debt_1',
+        amount: 10000,
+        currency: 'CDF',
+        date: now,
+        note: null,
+        createdAt: now,
+      );
+      final map = original.toMap();
+      final restored = DebtPayment.fromMap('pay_2', map);
+      expect(restored.note, isNull);
+      expect(restored.amount, original.amount);
+      expect(restored.currency, original.currency);
     });
   });
 }

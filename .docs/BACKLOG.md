@@ -44,5 +44,35 @@ Work top to bottom. Tick a task only when `dart format .`, `flutter analyze` and
 - [ ] (USER) Manual pass: offline and online, both themes, both currencies, edit/delete balance checks, run on Chrome (`flutter run -d chrome`) and on a phone
 - [ ] Release build (APK/AAB) and check the `INTERNET` permission in the main manifest
 
+## M8 — Debts
+- [x] `Debt` and `DebtPayment` models + round-trip test
+- [x] Debt/payment balance & remaining logic + tests (both directions, payment capped at remaining)
+- [x] `DebtRepository` + `DebtPaymentRepository` + tests (single `WriteBatch`, `FieldValue.increment`)
+- [x] `debtsProvider` / `debtPaymentsProvider` + tests
+- [x] Firestore rules for `debts` and `debtPayments` + (USER) publish
+- [ ] Debts screen (list + detail + add/edit + archive) + widget tests
+- [ ] Debt payment screen + widget tests
+- [ ] Route constants (`/debts`, `/debt-payment`) + router registration
+
+## M9 — Savings goals
+- [ ] `Goal` and `GoalEntry` models + round-trip test
+- [ ] Goal `savedAmount` bounds + reached derivation + tests
+- [ ] `GoalRepository` + `GoalEntryRepository` + tests
+- [ ] `goalsProvider` / `goalEntriesProvider` + tests
+- [ ] Firestore rules for `goals` and `goalEntries` + (USER) publish
+- [ ] Goals screen (list + detail + contribute/remove) + widget tests
+- [ ] Route constants (`/goals`, `/goal-detail`) + router registration
+
+## M10 — Recurring transactions
+- [ ] `RecurringTransaction` model + round-trip test
+- [ ] Generation logic: `nextDueDate`, deterministic id `rec_{id}_{yyyyMMdd}`, cap 60 + tests
+- [ ] Idempotency test: same `WriteBatch` creates txn + advances `nextDueDate`
+- [ ] `RecurringRepository` + tests
+- [ ] `recurringProvider` + tests
+- [ ] Client generation on app open/resume (signed in + onboarded only)
+- [ ] Firestore rules for `recurring` + (USER) publish
+- [ ] Recurring screen (list + add/edit + pause/archive) + widget tests
+- [ ] Route constants (`/recurring`) + router registration
+
 ## Later (v2)
-Google sign-in (uncomment button, SHA-1, `flutterfire configure`), savings goals, bill reminders, recurring transactions, CSV export.
+Google sign-in (uncomment button, SHA-1, `flutterfire configure`), bill reminders, CSV export.

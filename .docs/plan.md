@@ -75,6 +75,7 @@ Logic:
 - Idempotency: each generated transaction gets a deterministic id `rec_{recurringId}_{yyyyMMdd}`, and the same `WriteBatch` that creates it also moves `nextDueDate` forward on the schedule doc, so relaunching or two devices can't create duplicates. Generated transactions are normal transactions (same balance batch via `balanceDeltas`) with an extra optional field `recurringId`.
 - Paused or archived schedules generate nothing; on resume, `nextDueDate` continues from today (no back-filling the paused period) unless the user chooses otherwise later.
 - Cap a single run at a sensible maximum number of occurrences (e.g. 60) to avoid huge catch-ups.
+- Generation runs on the client once at cold start and on every lifecycle resume (in app.dart), only when signed in and onboarded, and only one run may be in flight at a time.
 
 ## Screens
 All screens follow `.docs/design.md` (responsive layout, tokens, shared widgets, loading/empty/error states).
@@ -158,10 +159,60 @@ service cloud.firestore {
         && validCurrency(request.resource.data.currency)
         && request.resource.data.categoryId is string;
     }
+    match /users/{uid}/debts/{id} {
+      allow read, delete: if isOwner(uid);
+      allow create, update: if isOwner(uid)
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 100
+        && request.resource.data.direction in ['owe', 'owed']
+        && validCurrency(request.resource.data.currency)
+        && request.resource.data.principal is int && request.resource.data.principal > 0
+        && request.resource.data.remaining is int
+        && request.resource.data.archived is bool;
+    }
+    match /users/{uid}/debtPayments/{id} {
+      allow read, delete: if isOwner(uid);
+      allow create: if isOwner(uid)
+        && request.resource.data.debtId is string
+        && positiveInt(request.resource.data.amount)
+        && validCurrency(request.resource.data.currency)
+        && request.resource.data.date is timestamp;
+    }
+    match /users/{uid}/goals/{id} {
+      allow read, delete: if isOwner(uid);
+      allow create, update: if isOwner(uid)
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 100
+        && validCurrency(request.resource.data.currency)
+        && request.resource.data.targetAmount is int && request.resource.data.targetAmount > 0
+        && request.resource.data.savedAmount is int && request.resource.data.savedAmount >= 0
+        && request.resource.data.archived is bool;
+    }
+    match /users/{uid}/goalEntries/{id} {
+      allow read, delete: if isOwner(uid);
+      allow create: if isOwner(uid)
+        && request.resource.data.goalId is string
+        && request.resource.data.amount is int && request.resource.data.amount != 0
+        && validCurrency(request.resource.data.currency)
+        && request.resource.data.date is timestamp;
+    }
+    match /users/{uid}/recurring/{id} {
+      allow read, delete: if isOwner(uid);
+      allow create, update: if isOwner(uid)
+        && request.resource.data.amount is int && request.resource.data.amount > 0
+        && validCurrency(request.resource.data.currency)
+        && request.resource.data.type in ['income', 'expense']
+        && request.resource.data.categoryId is string
+        && request.resource.data.frequency in ['weekly', 'monthly']
+        && request.resource.data.startDate is timestamp
+        && request.resource.data.nextDueDate is timestamp
+        && request.resource.data.paused is bool
+        && request.resource.data.archived is bool;
+    }
   }
 }
 ```
 Anything not listed is denied.
 
 ## Tests expected
-`Money`/`ExchangeRate`; model round trip; `balanceDeltas`; keypad logic; transaction filters; home totals (own-rate conversion); budget math (80%/100% boundaries, same category and currency only); chart data; PIN hashing; PDF generation (bytes start with `%PDF`).
+`Money`/`ExchangeRate`; model round trip; `balanceDeltas`; keypad logic; transaction filters; home totals (own-rate conversion); budget math (80%/100% boundaries, same category and currency only); chart data; PIN hashing; PDF generation (bytes start with `%PDF`); debt/payment balance and remaining updates; goal `savedAmount` bounds and reached derivation; recurring generation ids, idempotency and `nextDueDate` advancement (cap 60).
