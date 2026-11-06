@@ -12,7 +12,7 @@ Personal money management app in Flutter. One user, two currencies (CDF and USD)
 - Works offline; syncs when online.
 
 ## Out of scope for v1
-Google sign-in (code stays ready, UI hidden), savings goals, bill reminders, recurring transactions, CSV export, bank/mobile-money import, multi-user sharing.
+Google sign-in (code stays ready, UI hidden), bill reminders, CSV export, bank/mobile-money import, multi-user sharing.
 
 ## Stack
 Flutter (stable), Dart null-safety. Firebase Auth (email/password) + Cloud Firestore with offline persistence on. Riverpod (state), go_router (navigation), fl_chart (charts), `pdf` + `printing` (reports), `local_auth` + `flutter_secure_storage` + `crypto` (app lock), `intl` (formatting), `google_sign_in` (kept for later).
@@ -40,6 +40,41 @@ Flutter (stable), Dart null-safety. Firebase Auth (email/password) + Cloud Fires
 Balance maintenance: wallet `balance` changes with `FieldValue.increment` inside a `WriteBatch` together with the document write (set with merge). Never use `runTransaction` for balances (fails offline). Pure function `balanceDeltas(before, after)` computes the change: add (before null), delete (after null), edit (both; difference only; handles type or currency changes). Unit test it.
 
 Queries: only a date range is queried in Firestore (no composite indexes). Category, wallet and note filters run in memory.
+
+## Debts
+
+Money owed to or by the user, tracked per currency. Two collections:
+- `debts/{id}`: `name`, `direction` (`owe` = I owe someone, `owed` = someone owes me), `currency` (CDF|USD), `principal` (int, minor units), `remaining` (int, maintained with increments), `dueDate` (optional Timestamp), `note`, `archived`, `createdAt`.
+- `debtPayments/{id}`: `debtId`, `amount` (int), `currency` (same as the debt), `date` (Timestamp), `note`, `createdAt`.
+
+Logic:
+- Both directions supported; money stays in the debt's currency and a payment uses the wallet of that currency.
+- Creating a debt changes the wallet: `owe` = wallet `+principal`; `owed` = wallet `-principal`.
+- A payment changes the wallet: `owe` = wallet `-amount`; `owed` = wallet `+amount`. Either way `remaining` decreases by the amount; a payment can't exceed `remaining`.
+- All writes are one `WriteBatch` + `FieldValue.increment` (never `runTransaction`). Deleting a payment reverses both wallet and `remaining`. Debts are archived, not deleted, once settled.
+- Debts and payments are NOT income/expense: excluded from budgets, charts, month summary and the PDF transaction list, exactly like conversions.
+- Home shows no new card in this milestone (decide later).
+
+## Savings goals
+
+A savings goal is a reserved amount; wallet balances never change.
+- `goals/{id}`: `name`, `targetAmount` (int), `currency` (CDF|USD), `savedAmount` (int, maintained with increments), `targetDate` (optional Timestamp), `archived`, `createdAt`.
+- `goalEntries/{id}`: `goalId`, `amount` (int; positive = add, negative = remove), `date` (Timestamp), `note`.
+
+Logic:
+- Adding/removing progress updates only the goal; `savedAmount` can't go below 0. A goal is "reached" when `savedAmount >= targetAmount` (derived, not stored).
+- Excluded from budgets, charts, month summary and reports.
+
+## Recurring transactions
+
+Templates that generate normal transactions on a schedule. Generation runs on the client when the app opens/resumes and the user is signed in and onboarded.
+- `recurring/{id}`: template (`amount`, `currency`, `type`, `categoryId`, `note`), `frequency` (`weekly` | `monthly`; monthly clamps the day to the month's last day), `startDate`, `nextDueDate`, `endDate` (optional Timestamp), `paused`, `archived`, `createdAt`.
+
+Logic:
+- Option A: create every missed occurrence up to today, each with its own date = due date and `rateAtEntry` = the current rate at generation time.
+- Idempotency: each generated transaction gets a deterministic id `rec_{recurringId}_{yyyyMMdd}`, and the same `WriteBatch` that creates it also moves `nextDueDate` forward on the schedule doc, so relaunching or two devices can't create duplicates. Generated transactions are normal transactions (same balance batch via `balanceDeltas`) with an extra optional field `recurringId`.
+- Paused or archived schedules generate nothing; on resume, `nextDueDate` continues from today (no back-filling the paused period) unless the user chooses otherwise later.
+- Cap a single run at a sensible maximum number of occurrences (e.g. 60) to avoid huge catch-ups.
 
 ## Screens
 All screens follow `.docs/design.md` (responsive layout, tokens, shared widgets, loading/empty/error states).

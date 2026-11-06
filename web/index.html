@@ -35,77 +35,93 @@
 
   <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
 
+  
+  
+  
+  
+  
+  
   <style id="splash-screen-style">
-    html, body {
-      height: 100%;
-      margin: 0;
-      padding: 0;
+    html {
+      height: 100%
     }
 
     body {
+      margin: 0;
+      min-height: 100%;
       background-color: #0F5FA8;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
+          background-size: 100% 100%;
     }
 
-    #splash {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      width: 100%;
-      height: 100%;
+    .center {
+      margin: 0;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      -ms-transform: translate(-50%, -50%);
+      transform: translate(-50%, -50%);
     }
 
-    #splash img {
-      max-width: 80%;
-      max-height: 60vh;
-      width: auto;
-      height: auto;
+    .contain {
+      display:block;
+      width:100%; height:100%;
       object-fit: contain;
     }
 
-    #splash-branding {
-      margin-top: 16px;
-      color: rgba(255, 255, 255, 0.8);
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      font-size: 14px;
-      text-align: center;
+    .stretch {
+      display:block;
+      width:100%; height:100%;
+    }
+
+    .cover {
+      display:block;
+      width:100%; height:100%;
+      object-fit: cover;
+    }
+
+    .bottom {
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      -ms-transform: translate(-50%, 0);
+      transform: translate(-50%, 0);
+    }
+
+    .bottomLeft {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+    }
+
+    .bottomRight {
+      position: absolute;
+      bottom: 0;
+      right: 0;
     }
   </style>
   <script id="splash-screen-script">
     function removeSplashFromWeb() {
-      const splash = document.getElementById('splash');
-      const branding = document.getElementById('splash-branding');
-      if (splash) {
-        splash.style.opacity = '0';
-        splash.style.transition = 'opacity 0.3s ease-out';
-        setTimeout(() => splash.remove(), 300);
-      }
-      if (branding) {
-        branding.style.opacity = '0';
-        branding.style.transition = 'opacity 0.3s ease-out';
-        setTimeout(() => branding.remove(), 300);
-      }
-      document.body.style.background = 'transparent';
+      document.getElementById("splash")?.remove();
+      document.getElementById("splash-branding")?.remove();
+      document.body.style.background = "transparent";
     }
-
-    // Fallback: remove splash after a reasonable timeout if Flutter doesn't
-    setTimeout(() => {
-      if (document.getElementById('splash')) {
-        console.warn('Flutter took too long to initialize, removing splash');
-        removeSplashFromWeb();
-      }
-    }, 10000);
   </script>
 </head>
 <body>
-  <div id="splash">
-    <img src="icons/splash-512.png" alt="Money Manager">
-    <div id="splash-branding">Money Manager</div>
-  </div>
+  <picture id="splash-branding">
+    <source srcset="splash/img/branding-1x.png 1x, splash/img/branding-2x.png 2x, splash/img/branding-3x.png 3x, splash/img/branding-4x.png 4x" media="(prefers-color-scheme: light)">
+    <source srcset="splash/img/branding-dark-1x.png 1x, splash/img/branding-dark-2x.png 2x, splash/img/branding-dark-3x.png 3x, splash/img/branding-dark-4x.png 4x" media="(prefers-color-scheme: dark)">
+    <img class="bottom" aria-hidden="true" src="splash/img/branding-1x.png" alt="">
+  </picture>
+  <picture id="splash">
+      <source srcset="splash/img/light-1x.png 1x, splash/img/light-2x.png 2x, splash/img/light-3x.png 3x, splash/img/light-4x.png 4x" media="(prefers-color-scheme: light)">
+      <source srcset="splash/img/dark-1x.png 1x, splash/img/dark-2x.png 2x, splash/img/dark-3x.png 3x, splash/img/dark-4x.png 4x" media="(prefers-color-scheme: dark)">
+      <img class="center" aria-hidden="true" src="splash/img/light-1x.png" alt="">
+  </picture>
+  
+  
+  
+  
 
   <!--
     You can customize the "flutter_bootstrap.js" script.

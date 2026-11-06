@@ -49,7 +49,8 @@ flutter_native_splash:
   android: true
   ios: true
   android_12:
-    image: 'assets/icon/cleaned/logo.png'
+    branding: 'assets/icon/cleaned/logo.png'
     color: '#0F5FA8'
   web: true
   image: 'assets/icon/cleaned/logo.png'
+  branding: 'assets/icon/cleaned/logo.png'
