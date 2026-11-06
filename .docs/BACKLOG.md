@@ -41,7 +41,7 @@ Work top to bottom. Tick a task only when `dart format .`, `flutter analyze` and
 
 ## M7 — Polish and release
 - [x] Empty/error/loading states everywhere; app icon and splash
-- [ ] (USER) Manual pass: offline and online, both themes, both currencies, edit/delete balance checks, run on Chrome (`flutter run -d chrome`) and on a phone
+- [ ] (USER) Manual pass: offline and online, both themes, both currencies, edit/delete balance checks, debts flows (add debt, pay, delete payment, archive, both currencies), run on Chrome (`flutter run -d chrome`) and on a phone
 - [ ] Release build (APK/AAB) and check the `INTERNET` permission in the main manifest
 
 ## M8 — Debts
@@ -50,9 +50,9 @@ Work top to bottom. Tick a task only when `dart format .`, `flutter analyze` and
 - [x] `DebtRepository` + `DebtPaymentRepository` + tests (single `WriteBatch`, `FieldValue.increment`)
 - [x] `debtsProvider` / `debtPaymentsProvider` + tests
 - [x] Firestore rules for `debts` and `debtPayments` + (USER) publish
-- [ ] Debts screen (list + detail + add/edit + archive) + widget tests
-- [ ] Debt payment screen + widget tests
-- [ ] Route constants (`/debts`, `/debt-payment`) + router registration
+- [x] Debts screen (list + detail + add/edit + archive) + widget tests
+- [x] Debt payment screen + widget tests
+- [x] Route constants (`/debts`, `/debts/:id`) + router registration
 
 ## M9 — Savings goals
 - [ ] `Goal` and `GoalEntry` models + round-trip test

@@ -42,7 +42,11 @@ void main() {
           .doc(uid)
           .collection('wallets')
           .doc('CDF')
-          .set({'currency': 'CDF', 'openingBalance': 500000, 'balance': 500000});
+          .set({
+            'currency': 'CDF',
+            'openingBalance': 500000,
+            'balance': 500000,
+          });
     });
 
     tearDown(() {
@@ -57,53 +61,63 @@ void main() {
       return container.read(debtProvider(uid).notifier);
     }
 
-    test('add debt owe increases wallet and sets remaining = principal', () async {
-      await notifier().addDebt(Debt(
-        id: 'debt_1',
-        name: 'Phone loan',
-        direction: 'owe',
-        currency: 'USD',
-        principal: 50000,
-        remaining: 50000,
-        archived: false,
-        createdAt: DateTime(2026, 1, 1),
-      ));
-      await waitForStream();
+    test(
+      'add debt owe increases wallet and sets remaining = principal',
+      () async {
+        await notifier().addDebt(
+          Debt(
+            id: 'debt_1',
+            name: 'Phone loan',
+            direction: 'owe',
+            currency: 'USD',
+            principal: 50000,
+            remaining: 50000,
+            archived: false,
+            createdAt: DateTime(2026, 1, 1),
+          ),
+        );
+        await waitForStream();
 
-      final wallet = await mockFirestore
-          .collection('users')
-          .doc(uid)
-          .collection('wallets')
-          .doc('USD')
-          .get();
-      expect(wallet.data()!['balance'], 60000);
+        final wallet = await mockFirestore
+            .collection('users')
+            .doc(uid)
+            .collection('wallets')
+            .doc('USD')
+            .get();
+        expect(wallet.data()!['balance'], 60000);
 
-      final state = container.read(debtProvider(uid));
-      expect(state.value?.length, 1);
-      expect(state.value?.first.remaining, 50000);
-    });
+        final state = container.read(debtProvider(uid));
+        expect(state.value?.length, 1);
+        expect(state.value?.first.remaining, 50000);
+      },
+    );
 
-    test('add debt owed decreases wallet and sets remaining = principal', () async {
-      await notifier().addDebt(Debt(
-        id: 'debt_2',
-        name: 'Personal loan',
-        direction: 'owed',
-        currency: 'CDF',
-        principal: 100000,
-        remaining: 100000,
-        archived: false,
-        createdAt: DateTime(2026, 1, 1),
-      ));
-      await waitForStream();
+    test(
+      'add debt owed decreases wallet and sets remaining = principal',
+      () async {
+        await notifier().addDebt(
+          Debt(
+            id: 'debt_2',
+            name: 'Personal loan',
+            direction: 'owed',
+            currency: 'CDF',
+            principal: 100000,
+            remaining: 100000,
+            archived: false,
+            createdAt: DateTime(2026, 1, 1),
+          ),
+        );
+        await waitForStream();
 
-      final wallet = await mockFirestore
-          .collection('users')
-          .doc(uid)
-          .collection('wallets')
-          .doc('CDF')
-          .get();
-      expect(wallet.data()!['balance'], 400000);
-    });
+        final wallet = await mockFirestore
+            .collection('users')
+            .doc(uid)
+            .collection('wallets')
+            .doc('CDF')
+            .get();
+        expect(wallet.data()!['balance'], 400000);
+      },
+    );
 
     test('add payment owe decreases wallet and remaining', () async {
       final debt = Debt(
@@ -119,14 +133,17 @@ void main() {
       await notifier().addDebt(debt);
       await waitForStream();
 
-      await notifier().addPayment(debt, DebtPayment(
-        id: 'pay_1',
-        debtId: 'debt_3',
-        amount: 10000,
-        currency: 'USD',
-        date: DateTime(2026, 1, 15),
-        createdAt: DateTime(2026, 1, 15),
-      ));
+      await notifier().addPayment(
+        debt,
+        DebtPayment(
+          id: 'pay_1',
+          debtId: 'debt_3',
+          amount: 10000,
+          currency: 'USD',
+          date: DateTime(2026, 1, 15),
+          createdAt: DateTime(2026, 1, 15),
+        ),
+      );
       await waitForStream();
 
       final wallet = await mockFirestore
@@ -160,14 +177,17 @@ void main() {
       await notifier().addDebt(debt);
       await waitForStream();
 
-      await notifier().addPayment(debt, DebtPayment(
-        id: 'pay_2',
-        debtId: 'debt_4',
-        amount: 20000,
-        currency: 'CDF',
-        date: DateTime(2026, 1, 15),
-        createdAt: DateTime(2026, 1, 15),
-      ));
+      await notifier().addPayment(
+        debt,
+        DebtPayment(
+          id: 'pay_2',
+          debtId: 'debt_4',
+          amount: 20000,
+          currency: 'CDF',
+          date: DateTime(2026, 1, 15),
+          createdAt: DateTime(2026, 1, 15),
+        ),
+      );
       await waitForStream();
 
       final wallet = await mockFirestore
@@ -210,14 +230,17 @@ void main() {
       final beforeBalance = before.data()!['balance'];
 
       expect(
-        () async => notifier().addPayment(debt, DebtPayment(
-          id: 'pay_bad',
-          debtId: 'debt_5',
-          amount: 20000,
-          currency: 'USD',
-          date: DateTime(2026, 1, 15),
-          createdAt: DateTime(2026, 1, 15),
-        )),
+        () async => notifier().addPayment(
+          debt,
+          DebtPayment(
+            id: 'pay_bad',
+            debtId: 'debt_5',
+            amount: 20000,
+            currency: 'USD',
+            date: DateTime(2026, 1, 15),
+            createdAt: DateTime(2026, 1, 15),
+          ),
+        ),
         throwsA(isA<StateError>()),
       );
 
@@ -253,14 +276,17 @@ void main() {
       await waitForStream();
 
       expect(
-        () async => notifier().addPayment(debt, DebtPayment(
-          id: 'pay_zero',
-          debtId: 'debt_6',
-          amount: 0,
-          currency: 'USD',
-          date: DateTime(2026, 1, 15),
-          createdAt: DateTime(2026, 1, 15),
-        )),
+        () async => notifier().addPayment(
+          debt,
+          DebtPayment(
+            id: 'pay_zero',
+            debtId: 'debt_6',
+            amount: 0,
+            currency: 'USD',
+            date: DateTime(2026, 1, 15),
+            createdAt: DateTime(2026, 1, 15),
+          ),
+        ),
         throwsA(isA<StateError>()),
       );
     });
@@ -279,24 +305,30 @@ void main() {
       await notifier().addDebt(debt);
       await waitForStream();
 
-      await notifier().addPayment(debt, DebtPayment(
-        id: 'pay_3',
-        debtId: 'debt_7',
-        amount: 10000,
-        currency: 'USD',
-        date: DateTime(2026, 1, 15),
-        createdAt: DateTime(2026, 1, 15),
-      ));
+      await notifier().addPayment(
+        debt,
+        DebtPayment(
+          id: 'pay_3',
+          debtId: 'debt_7',
+          amount: 10000,
+          currency: 'USD',
+          date: DateTime(2026, 1, 15),
+          createdAt: DateTime(2026, 1, 15),
+        ),
+      );
       await waitForStream();
 
-      await notifier().deletePayment(debt, DebtPayment(
-        id: 'pay_3',
-        debtId: 'debt_7',
-        amount: 10000,
-        currency: 'USD',
-        date: DateTime(2026, 1, 15),
-        createdAt: DateTime(2026, 1, 15),
-      ));
+      await notifier().deletePayment(
+        debt,
+        DebtPayment(
+          id: 'pay_3',
+          debtId: 'debt_7',
+          amount: 10000,
+          currency: 'USD',
+          date: DateTime(2026, 1, 15),
+          createdAt: DateTime(2026, 1, 15),
+        ),
+      );
       await waitForStream();
 
       final wallet = await mockFirestore
@@ -317,16 +349,18 @@ void main() {
     });
 
     test('archive flips archived only, no balance change', () async {
-      await notifier().addDebt(Debt(
-        id: 'debt_8',
-        name: 'Phone loan',
-        direction: 'owe',
-        currency: 'USD',
-        principal: 50000,
-        remaining: 30000,
-        archived: false,
-        createdAt: DateTime(2026, 1, 1),
-      ));
+      await notifier().addDebt(
+        Debt(
+          id: 'debt_8',
+          name: 'Phone loan',
+          direction: 'owe',
+          currency: 'USD',
+          principal: 50000,
+          remaining: 30000,
+          archived: false,
+          createdAt: DateTime(2026, 1, 1),
+        ),
+      );
       await waitForStream();
 
       await notifier().archiveDebt('debt_8', true);
@@ -362,16 +396,18 @@ void main() {
 
     test('updateDebt changes name, note and dueDate only', () async {
       final now = DateTime(2026, 1, 1);
-      await notifier().addDebt(Debt(
-        id: 'debt_9',
-        name: 'Old name',
-        direction: 'owe',
-        currency: 'USD',
-        principal: 50000,
-        remaining: 50000,
-        archived: false,
-        createdAt: now,
-      ));
+      await notifier().addDebt(
+        Debt(
+          id: 'debt_9',
+          name: 'Old name',
+          direction: 'owe',
+          currency: 'USD',
+          principal: 50000,
+          remaining: 50000,
+          archived: false,
+          createdAt: now,
+        ),
+      );
       await waitForStream();
 
       final updated = Debt(
@@ -405,15 +441,30 @@ void main() {
 
     test('watchDebts streams debts newest first', () async {
       final now = DateTime(2026, 1, 1);
-      await notifier().addDebt(Debt(
-        id: 'debt_a', name: 'A', direction: 'owe', currency: 'USD',
-        principal: 1000, remaining: 1000, archived: false, createdAt: now,
-      ));
-      await notifier().addDebt(Debt(
-        id: 'debt_b', name: 'B', direction: 'owe', currency: 'USD',
-        principal: 2000, remaining: 2000, archived: false,
-        createdAt: now.add(const Duration(days: 1)),
-      ));
+      await notifier().addDebt(
+        Debt(
+          id: 'debt_a',
+          name: 'A',
+          direction: 'owe',
+          currency: 'USD',
+          principal: 1000,
+          remaining: 1000,
+          archived: false,
+          createdAt: now,
+        ),
+      );
+      await notifier().addDebt(
+        Debt(
+          id: 'debt_b',
+          name: 'B',
+          direction: 'owe',
+          currency: 'USD',
+          principal: 2000,
+          remaining: 2000,
+          archived: false,
+          createdAt: now.add(const Duration(days: 1)),
+        ),
+      );
       await waitForStream();
 
       final state = container.read(debtProvider(uid));

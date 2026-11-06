@@ -16,5 +16,7 @@ class AppRoutes {
   static const charts = '/charts';
   static const reports = '/reports';
   static const settings = '/settings';
+  static const debts = '/debts';
+  static const debtDetail = '/debts/:id';
   static const pinSetup = '/pin-setup';
 }

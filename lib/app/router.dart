@@ -11,6 +11,8 @@ import 'package:money_manager/features/convert/presentation/convert_screen.dart'
 import 'package:money_manager/features/charts/presentation/charts_screen.dart';
 import 'package:money_manager/features/home/presentation/home_screen.dart';
 import 'package:money_manager/features/reports/presentation/report_screen.dart';
+import 'package:money_manager/features/debts/presentation/debt_detail_screen.dart';
+import 'package:money_manager/features/debts/presentation/debts_screen.dart';
 import 'package:money_manager/features/settings/presentation/pin_setup_screen.dart';
 import 'package:money_manager/features/settings/presentation/settings_screen.dart';
 import 'package:money_manager/features/transactions/presentation/transaction_list_screen.dart';
@@ -93,6 +95,18 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.settings,
         builder: (_, _) => const SettingsScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.debts,
+        builder: (_, _) =>
+            AppShell(currentRoute: AppRoutes.debts, child: const DebtsScreen()),
+      ),
+      GoRoute(
+        path: AppRoutes.debtDetail,
+        builder: (_, state) => AppShell(
+          currentRoute: AppRoutes.debts,
+          child: DebtDetailScreen(debtId: state.pathParameters['id']!),
+        ),
       ),
       GoRoute(
         path: AppRoutes.pinSetup,

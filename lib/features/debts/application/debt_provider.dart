@@ -9,8 +9,8 @@ import 'package:money_manager/data/models/debt.dart';
 import 'package:money_manager/data/models/debt_payment.dart';
 import 'package:money_manager/data/repositories/debt_repository.dart';
 
-class DebtStateNotifier extends StateNotifier<AsyncValue<List<Debt>>> {  DebtStateNotifier(this._repo, this._uid)
-    : super(const AsyncValue.loading()) {
+class DebtStateNotifier extends StateNotifier<AsyncValue<List<Debt>>> {
+  DebtStateNotifier(this._repo, this._uid) : super(const AsyncValue.loading()) {
     _load();
   }
 
@@ -82,15 +82,14 @@ final debtProvider =
       DebtStateNotifier,
       AsyncValue<List<Debt>>,
       String
-    >(
-      (ref, uid) =>
-          DebtStateNotifier(ref.read(debtRepositoryProvider), uid),
-    );
+    >((ref, uid) => DebtStateNotifier(ref.read(debtRepositoryProvider), uid));
 
 /// Payments for a single debt, keyed by debtId. The uid comes from the
 /// signed-in user so the stream is scoped to the current user's debts.
-final debtPaymentsProvider =
-    StreamProvider.family<List<DebtPayment>, String>((ref, debtId) {
+final debtPaymentsProvider = StreamProvider.family<List<DebtPayment>, String>((
+  ref,
+  debtId,
+) {
   final user = ref.watch(authProvider);
   final uid = user?.uid ?? '';
   return ref.read(debtRepositoryProvider).watchPayments(uid, debtId);

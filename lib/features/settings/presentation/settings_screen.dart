@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import 'package:money_manager/app/routes.dart';
 import 'package:money_manager/app/theme.dart';
+import 'package:money_manager/app/widgets/app_card.dart';
 import 'package:money_manager/app/widgets/error_banner.dart';
 import 'package:money_manager/app/widgets/responsive_body.dart';
 import 'package:money_manager/data/models/setting.dart';
@@ -114,12 +117,46 @@ class SettingsScreen extends ConsumerWidget {
                   const SizedBox(height: 16),
                   const SecuritySection(),
                   const SizedBox(height: 16),
+                  _MoneyToolsSection(),
+                  const SizedBox(height: 16),
                   const AccountSection(),
                 ],
               ),
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// "Money tools" section in Settings: debts (goals and recurring added later).
+class _MoneyToolsSection extends StatelessWidget {
+  const _MoneyToolsSection();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return AppCard(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Money tools',
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 12),
+          ListTile(
+            leading: const Icon(Icons.attach_money),
+            title: const Text('Debts'),
+            subtitle: const Text('Track money you owe or are owed.'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.go(AppRoutes.debts),
+          ),
+        ],
       ),
     );
   }
